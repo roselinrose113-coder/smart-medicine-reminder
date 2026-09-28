@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart Medicine Reminder</title>
+<style>
+*{box-sizing:border-box;font-family:Arial,sans-serif}body{margin:0;background:#f4f7fb;color:#222}
+header{background:#2563eb;color:#fff;padding:20px;text-align:center}header h1{margin:0}
+.container{width:95%;max-width:1200px;margin:20px auto}.card{background:#fff;padding:20px;margin-bottom:20px;border-radius:12px;box-shadow:0 3px 12px #0001}
+h2{margin-top:0;color:#1e40af}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+input,select,button{width:100%;padding:11px;margin:5px 0;border:1px solid #ccc;border-radius:7px}button{background:#2563eb;color:#fff;border:0;font-weight:bold;cursor:pointer}
+button:hover{opacity:.9}.logout{width:auto;float:right;background:#dc2626}.delete{background:#dc2626}.take{background:#16a34a}.skip{background:#f59e0b}.snooze{background:#7c3aed}
+.item{border:1px solid #ddd;border-radius:10px;padding:14px;margin:10px 0}.status{display:inline-block;padding:5px 10px;border-radius:15px;font-size:13px;font-weight:bold}
+.Pending{background:#fef3c7;color:#92400e}.Taken{background:#dcfce7;color:#166534}.Skipped{background:#ffedd5;color:#9a3412}.Missed{background:#fee2e2;color:#991b1b}
+.alert{padding:12px;background:#fee2e2;border-left:5px solid #dc2626;margin:8px 0;border-radius:6px}.success{padding:12px;background:#dcfce7;border-left:5px solid #16a34a;border-radius:6px}
+.stat{padding:18px;background:#eff6ff;border-radius:10px;text-align:center}.stat h3{margin:0;font-size:28px;color:#2563eb}.small{color:#666;font-size:13px}
+.login{max-width:400px;margin:80px auto}.modal{display:none;position:fixed;inset:0;background:#0008;z-index:99}.modalbox{background:#fff;width:90%;max-width:500px;margin:12% auto;padding:25px;border-radius:15px;text-align:center}
+@media print{body *{visibility:hidden}#printReport,#printReport *{visibility:visible}#printReport{position:absolute;left:0;top:0;width:100%}}
+
+.analytics-number{font-size:30px;font-weight:700;margin-top:8px}
+.analytics-performance{margin-top:15px}
+.perf-row{display:grid;grid-template-columns:100px 1fr 50px;gap:10px;align-items:center;margin:14px 0}
+.perf-track{height:18px;background:#e9ecef;border-radius:10px;overflow:hidden}
+.perf-bar{height:100%;width:0%;border-radius:10px;transition:width .4s ease}
+@media(max-width:600px){.perf-row{grid-template-columns:85px 1fr 45px;font-size:14px}}
+
+/* 📱 Mobile Responsive Design */
+*{box-sizing:border-box}
+body{margin:0;overflow-x:hidden}
+button,input,select{max-width:100%}
+img{max-width:100%;height:auto}
+@media (max-width:768px){
+  body{font-size:15px;padding:0 8px}
+  h1{font-size:24px}
+  h2{font-size:20px;margin-top:22px}
+  h3{font-size:17px}
+  .container,main,.content{width:100%!important;max-width:100%!important;padding:8px!important}
+  .grid{display:grid!important;grid-template-columns:1fr!important;gap:12px!important}
+  .card{width:100%!important;padding:14px!important;margin-bottom:10px}
+  input,select,textarea{width:100%!important;min-height:44px;font-size:16px!important}
+  button{width:100%!important;min-height:44px;margin:5px 0!important;font-size:15px}
+  table{display:block;width:100%;overflow-x:auto;white-space:nowrap}
+  .header,.navbar,.nav,.actions{flex-wrap:wrap!important}
+  .header>*{max-width:100%}
+  #undoBar{width:calc(100% - 20px)!important;text-align:center}
+  .modalbox{width:calc(100% - 24px)!important;max-height:90vh;overflow-y:auto}
+  .analytics-track{width:100%!important}
+}
+@media (min-width:769px) and (max-width:1100px){
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+</style>
+</head>
+<body>
+
+<div id="loginPage">
+<div class="card login">
+<h1>💊 Smart Medicine Reminder</h1><p>Login to continue</p>
+<input id="username" placeholder="Username">
+<input id="password" type="password" placeholder="Password">
+<button onclick="login()">🔐 Login</button>
+<p class="small">Demo Login: admin / 1234</p>
+</div></div>
+
+<div id="app" style="display:none">
+<header><button class="logout" onclick="logout()">Logout</button><h1>💊 Smart Medicine Reminder</h1><p>Never miss your medicine</p></header>
+<div class="container">
+
+<div class="card">
+<h2>👤 Patient Management</h2>
+<div class="grid">
+<input id="patientName" placeholder="Patient Name"><input id="patientAge" type="number" placeholder="Age">
+<select id="patientType"><option>Adult</option><option>Child</option><option>Senior</option></select>
+<input id="caregiver" placeholder="Caregiver Name">
+</div><button onclick="addPatient()">➕ Add Patient</button><div id="patientList"></div>
+</div>
+
+<div class="card">
+<h2>💊 Add Medicine</h2>
+<div class="grid">
+<select id="medicinePatient"><option value="">Select Patient</option></select>
+<input id="medicineName" placeholder="Medicine Name"><input id="dosage" placeholder="Dosage e.g. 1 tablet">
+<input id="medicineTime" type="time">
+<select id="instruction"><option>After Food</option><option>Before Food</option><option>With Food</option><option>Anytime</option></select>
+<input id="startDate" type="date"><input id="endDate" type="date">
+<input id="quantity" type="number" min="0" placeholder="Total Quantity">
+<select id="frequency"><option>Once Daily</option><option>Twice Daily</option><option>Three Times Daily</option><option>As Needed</option></select>
+</div><button onclick="addMedicine()">➕ Add Medicine</button>
+</div>
+
+<div class="card"><h2>📦 Stock Status</h2><div id="stockStatus"></div></div>
+<div class="card"><h2>⚠️ Caregiver Alerts</h2><div id="caregiverAlerts"></div></div>
+<div class="card"><h2>📅 Upcoming Medicine Schedule</h2><div id="upcoming"></div></div>
+
+<div class="card"><h2>💊 Today's Medicines</h2>
+<input id="search" placeholder="🔍 Search medicine..." oninput="displayMedicines()"><div id="today"></div></div>
+
+<div class="card"><h2>📊 Medication Summary</h2>
+<div class="grid">
+<div class="stat"><h3 id="total">0</h3><p>Total Medicines</p></div>
+<div class="stat"><h3 id="takenCount">0</h3><p>Taken</p></div>
+<div class="stat"><h3 id="skippedCount">0</h3><p>Skipped</p></div>
+<div class="stat"><h3 id="missedCount">0</h3><p>Missed</p></div>
+<div class="stat"><h3 id="pendingCount">0</h3><p>Pending</p></div>
+<div class="stat"><h3 id="outCount">0</h3><p>Out of Stock</p></div>
+</div></div>
+
+<div class="card"><h2>👤 Patient-wise Dashboard</h2>
+<select id="dashPatient" onchange="patientDashboard()"><option value="">Select Patient</option></select><div id="dash"></div></div>
+
+<div class="card"><h2>📜 Medicine History</h2><div id="historyBox"></div></div>
+
+<div class="card"><h2>📄 Patient Reports</h2>
+<select id="reportPatient"><option value="">Select Patient</option></select>
+<button onclick="generateReport()">📄 Generate Report</button><button onclick="window.print()">🖨️ Print / Save as PDF</button>
+<div id="printReport"></div></div>
+
+
+<div class="card">
+<h2>👨‍👩‍👧 Caregiver Dashboard</h2>
+<div class="grid">
+<select id="caregiverPatient" onchange="showCaregiverDashboard()"><option value="">Select Patient</option></select>
+</div>
+<div class="grid" id="caregiverStats" style="margin-top:15px">
+<div class="card"><h3>👤 Patient</h3><div id="cgPatient">-</div></div>
+<div class="card"><h3>💊 Medicines</h3><div id="cgMedicines">0</div></div>
+<div class="card"><h3>✅ Taken</h3><div id="cgTaken">0</div></div>
+<div class="card"><h3>⏭️ Skipped</h3><div id="cgSkipped">0</div></div>
+<div class="card"><h3>⚠️ Missed</h3><div id="cgMissed">0</div></div>
+<div class="card"><h3>🚨 Out of Stock</h3><div id="cgOut">0</div></div>
+</div>
+<div class="card" style="margin-top:15px"><h3>🔔 Caregiver Alerts</h3><div id="cgAlerts">Select a patient to view alerts.</div></div>
+</div>
+
+<div class="card">
+<h2>📊 Medicine Analytics Dashboard</h2>
+<div class="grid analytics-grid">
+<div class="card"><h3>💊 Total Medicines</h3><div id="analyticsTotal" class="analytics-number">0</div></div>
+<div class="card"><h3>✅ Taken</h3><div id="analyticsTaken" class="analytics-number">0</div></div>
+<div class="card"><h3>⏭️ Skipped</h3><div id="analyticsSkipped" class="analytics-number">0</div></div>
+<div class="card"><h3>⚠️ Missed</h3><div id="analyticsMissed" class="analytics-number">0</div></div>
+<div class="card"><h3>🚨 Out of Stock</h3><div id="analyticsOut" class="analytics-number">0</div></div>
+<div class="card"><h3>📈 Taken Percentage</h3><div id="analyticsPercent" class="analytics-number">0%</div></div>
+</div>
+<div class="card analytics-performance">
+<h3>📊 Medication Performance</h3>
+<div class="perf-row"><span>✅ Taken</span><div class="perf-track"><div id="barTaken" class="perf-bar"></div></div><b id="barTakenText">0%</b></div>
+<div class="perf-row"><span>⏭️ Skipped</span><div class="perf-track"><div id="barSkipped" class="perf-bar"></div></div><b id="barSkippedText">0%</b></div>
+<div class="perf-row"><span>⚠️ Missed</span><div class="perf-track"><div id="barMissed" class="perf-bar"></div></div><b id="barMissedText">0%</b></div>
+</div>
+<h2>📈 Overall Progress</h2><div id="progress"></div></div>
+</div></div>
+
+<div id="undoBar" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:14px 18px;border-radius:10px;z-index:9999;box-shadow:0 4px 15px rgba(0,0,0,.25);">
+<span id="undoText">Medicine deleted.</span>
+<button onclick="undoDelete()" style="margin-left:12px;">↩️ Undo</button>
+</div>
+<div id="modal" class="modal"><div class="modalbox">
+<h2>⏰ Medicine Reminder</h2><div id="reminderText"></div>
+<button class="take" onclick="takeReminder()">✓ Taken</button>
+<button class="snooze" onclick="snooze()">⏰ Snooze 5 min</button>
+<button class="delete" onclick="closeModal()">✕ Close</button>
+</div></div>
+<div id="editModal" class="modal"><div class="modalbox">
+<h2>✏️ Edit Medicine</h2>
+<input type="hidden" id="editId">
+<input id="editName" placeholder="Medicine Name">
+<input id="editDosage" placeholder="Dosage">
+<input id="editTime" type="time">
+<select id="editInstruction"><option>After Food</option><option>Before Food</option><option>With Food</option><option>Anytime</option></select>
+<input id="editStart" type="date">
+<input id="editEnd" type="date">
+<input id="editQuantity" type="number" min="0" placeholder="Quantity">
+<select id="editFrequency"><option>Once Daily</option><option>Twice Daily</option><option>Three Times Daily</option><option>As Needed</option></select>
+<button onclick="saveEdit()">💾 Save Changes</button>
+<button class="delete" onclick="closeEdit()">✕ Cancel</button>
+</div></div>
+
+<script>
+let patients=JSON.parse(localStorage.getItem("patients"))||[];
+let medicines=JSON.parse(localStorage.getItem("medicines"))||[];
+let history=JSON.parse(localStorage.getItem("history"))||[];
+let reminderId=null;
+
+const $=id=>document.getElementById(id);
+const today=()=>{let d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+function save(){localStorage.setItem("patients",JSON.stringify(patients));localStorage.setItem("medicines",JSON.stringify(medicines));localStorage.setItem("history",JSON.stringify(history))}
+function login(){if($("username").value==="admin"&&$("password").value==="1234"){localStorage.setItem("medicineLoggedIn","true");$("loginPage").style.display="none";$("app").style.display="block";init()}else alert("❌ Invalid username or password")}
+function logout(){localStorage.removeItem("medicineLoggedIn");location.reload()}
+
+function addPatient(){
+ let name=$("patientName").value.trim(),age=$("patientAge").value;
+ if(!name||!age)return alert("Please enter patient name and age");
+ patients.push({id:Date.now(),name,age,type:$("patientType").value,caregiver:$("caregiver").value.trim()||"Not specified"});
+ ["patientName","patientAge","caregiver"].forEach(x=>$(x).value="");save();displayAll();alert("✅ Patient added successfully")
+}
+function deletePatient(id){if(!confirm("Delete this patient?"))return;patients=patients.filter(p=>p.id!==id);medicines=medicines.filter(m=>m.patientId!==id);save();displayAll()}
+
+function addMedicine(){
+ let patientId=+$("medicinePatient").value,name=$("medicineName").value.trim(),dosage=$("dosage").value.trim(),time=$("medicineTime").value,startDate=$("startDate").value,endDate=$("endDate").value,quantity=+$("quantity").value;
+ if(!patientId||!name||!dosage||!time||!startDate||!endDate)return alert("Please fill all required fields");
+ if(quantity<0)return alert("Quantity cannot be negative");
+ medicines.push({id:Date.now(),patientId,name,dosage,time,instruction:$("instruction").value,startDate,endDate,quantity,totalQuantity:quantity,frequency:$("frequency").value,status:"Pending",missedAlert:false,snoozeUntil:null});
+ ["medicineName","dosage","medicineTime","quantity"].forEach(x=>$(x).value="");save();displayAll();alert("✅ Medicine added successfully")
+}
+
+function patientName(id){let p=patients.find(x=>x.id===id);return p?p.name:"Unknown"}
+function stockLabel(q){return q===0?"🚨 OUT OF STOCK":q<=3?"⚠️ LOW STOCK":"✅ In Stock"}
+
+
+
+let deletedMedicineBackup=null;
+let undoTimer=null;
+
+function deleteMedicine(id){
+ let m=medicines.find(x=>x.id===id);
+ if(!m)return;
+
+ if(!confirm(`Delete "${m.name}" medicine?`)) return;
+
+ deletedMedicineBackup={
+   medicine:JSON.parse(JSON.stringify(m)),
+   history:history.filter(h=>h.medicineId===id).map(h=>JSON.parse(JSON.stringify(h)))
+ };
+
+ medicines=medicines.filter(x=>x.id!==id);
+ history=history.filter(h=>h.medicineId!==id);
+ save();
+ displayAll();
+
+ $("undoText").textContent=`"${m.name}" deleted.`;
+ $("undoBar").style.display="block";
+
+ clearTimeout(undoTimer);
+ undoTimer=setTimeout(()=>{
+   deletedMedicineBackup=null;
+   $("undoBar").style.display="none";
+ },10000);
+}
+
+function undoDelete(){
+ if(!deletedMedicineBackup)return;
+
+ medicines.push(deletedMedicineBackup.medicine);
+ history.push(...deletedMedicineBackup.history);
+ save();
+ displayAll();
+
+ clearTimeout(undoTimer);
+ deletedMedicineBackup=null;
+ $("undoBar").style.display="none";
+ alert("↩️ Medicine restored successfully");
+}
+
+function openEdit(id){
+ let m=medicines.find(x=>x.id===id);
+ if(!m)return;
+ $("editId").value=m.id;
+ $("editName").value=m.name;
+ $("editDosage").value=m.dosage;
+ $("editTime").value=m.time;
+ $("editInstruction").value=m.instruction;
+ $("editStart").value=m.startDate;
+ $("editEnd").value=m.endDate;
+ $("editQuantity").value=m.quantity;
+ $("editFrequency").value=m.frequency;
+ $("editModal").style.display="block";
+}
+
+function saveEdit(){
+ let id=+$("editId").value;
+ let m=medicines.find(x=>x.id===id);
+ if(!m)return;
+
+ let name=$("editName").value.trim();
+ let dosage=$("editDosage").value.trim();
+ let time=$("editTime").value;
+ let start=$("editStart").value;
+ let end=$("editEnd").value;
+ let quantity=+$("editQuantity").value;
+
+ if(!name||!dosage||!time||!start||!end){
+   return alert("Please fill all medicine details.");
+ }
+ if(quantity<0){
+   return alert("Quantity cannot be negative.");
+ }
+ if(end<start){
+   return alert("End date cannot be before start date.");
+ }
+
+ m.name=name;
+ m.dosage=dosage;
+ m.time=time;
+ m.instruction=$("editInstruction").value;
+ m.startDate=start;
+ m.endDate=end;
+ m.quantity=quantity;
+ m.frequency=$("editFrequency").value;
+
+ if(quantity>0 && m.status==="Taken"){
+   m.status="Pending";
+ }
+ if(quantity===0){
+   m.status="Pending";
+ }
+
+ m.missedAlert=false;
+ m.snoozeUntil=null;
+
+ save();
+ closeEdit();
+ displayAll();
+ alert("✅ Medicine updated successfully");
+}
+
+function closeEdit(){
+ $("editModal").style.display="none";
+}
+
+function markTaken(id){
+ let m=medicines.find(x=>x.id===id);if(!m)return;
+ if(m.quantity<=0)return alert("🚨 This medicine is out of stock.");
+ if(m.status!=="Taken")m.quantity--;
+ m.status="Taken";m.missedAlert=false;m.snoozeUntil=null;
+ history.push({id:Date.now(),medicineId:m.id,medicine:m.name,patientId:m.patientId,status:"Taken",date:new Date().toLocaleString()});
+ save();displayAll()
+}
+function markSkipped(id){
+ let m=medicines.find(x=>x.id===id);if(!m)return;m.status="Skipped";m.missedAlert=true;
+ history.push({id:Date.now(),medicineId:m.id,medicine:m.name,patientId:m.patientId,status:"Skipped",date:new Date().toLocaleString()});
+ save();displayAll()
+}
+
+function checkMissed(){
+ let t=today(),now=new Date();
+ medicines.forEach(m=>{
+  if(m.startDate<=t&&m.endDate>=t&&m.status==="Pending"&&m.time){
+   let [h,min]=m.time.split(":").map(Number),s=new Date();s.setHours(h,min,0,0);
+   if(now-s>30*60*1000){m.status="Missed";m.missedAlert=true;
+    if(!history.some(x=>x.medicineId===m.id&&x.status==="Missed"&&x.date.startsWith(new Date().toLocaleDateString())))
+      history.push({id:Date.now(),medicineId:m.id,medicine:m.name,patientId:m.patientId,status:"Missed",date:new Date().toLocaleString()});
+   }
+  }
+ });save();displayAll()
+}
+
+function displayPatients(){let b=$("patientList");b.innerHTML=patients.length?patients.map(p=>`<div class="item"><h3>👤 ${p.name}</h3>Age: ${p.age}<br>Type: ${p.type}<br>Caregiver: ${p.caregiver}<button class="delete" onclick="deletePatient(${p.id})">🗑️ Delete Patient</button></div>`).join(""):"<p>No patients added.</p>"}
+
+function updateSelects(){
+ [["medicinePatient","Select Patient"],["dashPatient","Select Patient"],["reportPatient","Select Patient"]].forEach(([id,txt])=>{
+  $(id).innerHTML=`<option value="">${txt}</option>`+patients.map(p=>`<option value="${p.id}">${p.name}</option>`).join("")
+ })
+}
+
+function displayMedicines(){
+ let q=$("search").value.toLowerCase(),t=today();
+ let list=medicines.filter(m=>m.startDate<=t&&m.endDate>=t&&m.name.toLowerCase().includes(q));
+ $("today").innerHTML=list.length?list.map(m=>{
+  let out=m.quantity<=0;
+  return `<div class="item"><h3>💊 ${m.name}</h3><b>Patient:</b> ${patientName(m.patientId)}<br><b>Dosage:</b> ${m.dosage}<br><b>Time:</b> ${m.time}<br><b>Instruction:</b> ${m.instruction}<br><b>Frequency:</b> ${m.frequency}<br><b>Remaining Doses:</b> ${m.quantity}<br><b>Stock:</b> ${stockLabel(m.quantity)}<br><br><span class="status ${m.status}">${m.status}</span>
+  <button onclick="openEdit(${m.id})">✏️ Edit Medicine</button><button class="delete" onclick="deleteMedicine(${m.id})">🗑️ Delete</button>
+  ${m.status==="Pending"&&!out?`<button class="take" onclick="markTaken(${m.id})">✓ Taken</button><button class="skip" onclick="markSkipped(${m.id})">⏭️ Skip</button>`:out?`<button class="delete" disabled>🚨 Out of Stock</button>`:""}</div>`
+ }).join(""):"<p>No medicines found.</p>"
+}
+
+function stockStatus(){
+ let list=medicines.filter(m=>m.quantity<=3);
+ $("stockStatus").innerHTML=list.length?list.map(m=>`<div class="${m.quantity===0?"alert":"item"}"><b>${m.quantity===0?"🚨 Out of Stock":"⚠️ Low Stock"}</b><br>Patient: ${patientName(m.patientId)}<br>Medicine: ${m.name}<br>Remaining Doses: <b>${m.quantity}</b></div>`).join(""):`<div class="success">✅ All medicines have sufficient stock.</div>`
+}
+
+function alerts(){
+ let a=medicines.filter(m=>m.missedAlert&&(m.status==="Skipped"||m.status==="Missed"));
+ $("caregiverAlerts").innerHTML=a.length?a.map(m=>{let p=patients.find(x=>x.id===m.patientId);return `<div class="alert"><b>⚠️ Medicine Alert</b><br>👤 Patient: ${patientName(m.patientId)}<br>💊 Medicine: ${m.name}<br>⏰ Scheduled: ${m.time}<br>👨‍👩‍👧 Caregiver: ${p?p.caregiver:"Not specified"}<br>📌 Status: ${m.status}</div>`}).join(""):`<div class="success">✅ No caregiver alerts right now.</div>`
+}
+
+function upcoming(){
+ let t=today(),a=medicines.filter(m=>m.startDate<=t&&m.endDate>=t).sort((x,y)=>x.time.localeCompare(y.time));
+ $("upcoming").innerHTML=a.length?a.map(m=>`<div class="item">⏰ <b>${m.time}</b> — 💊 ${m.name} — 👤 ${patientName(m.patientId)}</div>`).join(""):"<p>No upcoming medicines.</p>"
+}
+
+function summary(){
+ let a=medicines.filter(m=>m.startDate<=today()&&m.endDate>=today());
+ $("total").textContent=a.length;$("takenCount").textContent=a.filter(m=>m.status==="Taken").length;$("skippedCount").textContent=a.filter(m=>m.status==="Skipped").length;$("missedCount").textContent=a.filter(m=>m.status==="Missed").length;$("pendingCount").textContent=a.filter(m=>m.status==="Pending").length;$("outCount").textContent=a.filter(m=>m.quantity<=0).length
+}
+
+function patientDashboard(){
+ let id=+$("dashPatient").value;if(!id){$("dash").innerHTML="";return}
+ let p=patients.find(x=>x.id===id),a=medicines.filter(m=>m.patientId===id);
+ $("dash").innerHTML=`<div class="grid"><div class="stat"><h3>${a.length}</h3><p>Total Medicines</p></div><div class="stat"><h3>${a.filter(m=>m.status==="Taken").length}</h3><p>Taken</p></div><div class="stat"><h3>${a.filter(m=>m.status==="Missed").length}</h3><p>Missed</p></div><div class="stat"><h3>${a.filter(m=>m.quantity<=0).length}</h3><p>Out of Stock</p></div></div><p><b>Patient:</b> ${p.name} | <b>Age:</b> ${p.age} | <b>Caregiver:</b> ${p.caregiver}</p>`
+}
+
+function showHistory(){$("historyBox").innerHTML=history.length?history.slice().reverse().map(h=>`<div class="item">💊 <b>${h.medicine}</b><br>👤 ${patientName(h.patientId)}<br>📌 ${h.status}<br>🕒 ${h.date}</div>`).join(""):"<p>No history available.</p>"}
+
+function generateReport(){
+ let id=+$("reportPatient").value;if(!id)return alert("Please select a patient");
+ let p=patients.find(x=>x.id===id),a=medicines.filter(m=>m.patientId===id);
+ $("printReport").innerHTML=`<div><h2>💊 Smart Medicine Report</h2><hr><h3>Patient Information</h3><p>Name: ${p.name}</p><p>Age: ${p.age}</p><p>Type: ${p.type}</p><p>Caregiver: ${p.caregiver}</p><hr><h3>Medication Details</h3>${a.map(m=>`<div class="item"><b>${m.name}</b><br>Dosage: ${m.dosage}<br>Time: ${m.time}<br>Instruction: ${m.instruction}<br>Total Quantity: ${m.totalQuantity}<br><b>Remaining Doses: ${m.quantity}</b><br>Stock: ${stockLabel(m.quantity)}<br>Status: ${m.status}</div>`).join("")}</div>`
+}
+
+function progress(){
+ let n=medicines.length,t=medicines.filter(m=>m.status==="Taken").length,p=n?Math.round(t/n*100):0;
+ $("progress").innerHTML=`<p><b>Medication Adherence: ${p}%</b></p><div style="background:#ddd;border-radius:10px;overflow:hidden"><div style="width:${p}%;background:#16a34a;height:25px;text-align:center;color:white">${p}%</div></div>`
+}
+
+
+function analyticsDashboard(){
+  const taken=history.filter(h=>h.status==="Taken").length;
+  const skipped=history.filter(h=>h.status==="Skipped").length;
+  const missed=history.filter(h=>h.status==="Missed").length;
+  const totalActions=taken+skipped+missed;
+  const out=medicines.filter(m=>Number(m.quantity)<=0).length;
+  const takenPct=totalActions?Math.round(taken/totalActions*100):0;
+  const skippedPct=totalActions?Math.round(skipped/totalActions*100):0;
+  const missedPct=totalActions?Math.round(missed/totalActions*100):0;
+  $("analyticsTotal").textContent=medicines.length;
+  $("analyticsTaken").textContent=taken;
+  $("analyticsSkipped").textContent=skipped;
+  $("analyticsMissed").textContent=missed;
+  $("analyticsOut").textContent=out;
+  $("analyticsPercent").textContent=takenPct+"%";
+  $("barTaken").style.width=takenPct+"%";
+  $("barSkipped").style.width=skippedPct+"%";
+  $("barMissed").style.width=missedPct+"%";
+  $("barTakenText").textContent=takenPct+"%";
+  $("barSkippedText").textContent=skippedPct+"%";
+  $("barMissedText").textContent=missedPct+"%";
+}
+
+
+function updateCaregiverSelect(){
+ let s=$("caregiverPatient");if(!s)return;
+ let old=s.value;
+ s.innerHTML='<option value="">Select Patient</option>'+patients.map(p=>`<option value="${p.id}">${p.name}</option>`).join("");
+ if(patients.some(p=>String(p.id)===String(old)))s.value=old;
+}
+function showCaregiverDashboard(){
+ let pid=$("caregiverPatient").value;
+ if(!pid){["cgPatient","cgMedicines","cgTaken","cgSkipped","cgMissed","cgOut"].forEach(id=>$(id).textContent=id==="cgPatient"?"-":"0");$("cgAlerts").textContent="Select a patient to view alerts.";return;}
+ let p=patients.find(x=>String(x.id)===String(pid));
+ let meds=medicines.filter(m=>String(m.patientId)===String(pid));
+ let taken=history.filter(h=>String(h.patientId)===String(pid)&&h.status==="Taken").length;
+ let skipped=history.filter(h=>String(h.patientId)===String(pid)&&h.status==="Skipped").length;
+ let missed=history.filter(h=>String(h.patientId)===String(pid)&&h.status==="Missed").length;
+ let out=meds.filter(m=>Number(m.quantity)<=0);
+ $("cgPatient").textContent=p?`${p.name} (${p.age} • ${p.type})`:"-";
+ $("cgMedicines").textContent=meds.length;$("cgTaken").textContent=taken;$("cgSkipped").textContent=skipped;$("cgMissed").textContent=missed;$("cgOut").textContent=out.length;
+ let alerts=[];meds.forEach(m=>{if(Number(m.quantity)<=0)alerts.push(`🚨 ${m.name}: Out of Stock`);if(m.status==="Missed")alerts.push(`⚠️ ${m.name}: Missed`);if(m.status==="Skipped")alerts.push(`⏭️ ${m.name}: Skipped`);});
+ $("cgAlerts").innerHTML=alerts.length?alerts.map(a=>`<p>${a}</p>`).join(""):"✅ No current alerts for this patient.";
+}
+
+function displayAll(){
+ analyticsDashboard();updateCaregiverSelect();showCaregiverDashboard();displayPatients();updateSelects();displayMedicines();stockStatus();alerts();upcoming();summary();showHistory();progress()}
+
+function reminderCheck(){
+ let t=today(),now=new Date();
+ medicines.forEach(m=>{
+  if(m.startDate<=t&&m.endDate>=t&&m.status==="Pending"&&m.time){
+   let [h,min]=m.time.split(":").map(Number),key=t+"_"+m.id;
+   if(now.getHours()===h&&now.getMinutes()===min&&!localStorage.getItem("reminded_"+key)){
+    localStorage.setItem("reminded_"+key,"true");reminderId=m.id;
+    $("reminderText").innerHTML=`<h3>💊 ${m.name}</h3><p>Patient: ${patientName(m.patientId)}</p><p>Dosage: ${m.dosage}</p><p>Time: ${m.time}</p>`;$("modal").style.display="block";
+    if("Notification"in window&&Notification.permission==="granted")new Notification("💊 Medicine Reminder",{body:m.name+" - "+m.dosage})
+   }
+  }
+ })
+}
+function takeReminder(){if(reminderId)markTaken(reminderId);closeModal()}
+function snooze(){let m=medicines.find(x=>x.id===reminderId);if(m)m.snoozeUntil=Date.now()+300000;save();closeModal()}
+function closeModal(){$("modal").style.display="none";reminderId=null}
+
+function init(){displayAll();if("Notification"in window&&Notification.permission==="default")Notification.requestPermission();setInterval(reminderCheck,5000);setInterval(checkMissed,30000);checkMissed()}
+if(localStorage.getItem("medicineLoggedIn")==="true"){$("loginPage").style.display="none";$("app").style.display="block";init()}
+</script>
+</body>
+</html>
