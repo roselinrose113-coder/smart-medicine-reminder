@@ -1,0 +1,4959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2563eb">
+<meta name="description" content="Smart Medicine Reminder+">
+<link rel="manifest" href="manifest.json">
+
+<title>💊 Smart Medicine Reminder+</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root{
+  --primary:#2563eb;
+  --primary2:#1d4ed8;
+  --bg:#f5f7fb;
+  --card:#ffffff;
+  --text:#172033;
+  --muted:#667085;
+  --border:#e4e7ec;
+  --danger:#dc2626;
+  --success:#15803d;
+  --warning:#b45309;
+  --shadow:0 8px 25px rgba(16,24,40,.08);
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+button,input,select,textarea{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+.hidden{
+  display:none!important;
+}
+
+.container{
+  max-width:1200px;
+  margin:auto;
+  padding:20px;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:18px;
+  box-shadow:var(--shadow);
+}
+
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:50;
+  background:#ffffffee;
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+
+.topbar-inner{
+  max-width:1200px;
+  margin:auto;
+  padding:12px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.brand{
+  font-size:19px;
+  font-weight:800;
+}
+
+.actions{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+}
+
+.btn{
+  border:0;
+  border-radius:10px;
+  padding:10px 14px;
+  background:var(--primary);
+  color:#fff;
+  font-weight:700;
+}
+
+.btn:hover{
+  background:var(--primary2);
+}
+
+.btn.secondary{
+  background:#eef2ff;
+  color:#1e40af;
+}
+
+.btn.gray{
+  background:#f2f4f7;
+  color:#344054;
+}
+
+.btn.success{
+  background:var(--success);
+}
+
+.btn.danger{
+  background:var(--danger);
+}
+
+.btn.small{
+  padding:7px 10px;
+  font-size:13px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(12,1fr);
+  gap:15px;
+}
+
+.col12{grid-column:span 12}
+.col8{grid-column:span 8}
+.col6{grid-column:span 6}
+.col4{grid-column:span 4}
+.col3{grid-column:span 3}
+
+h1,h2,h3{
+  margin-top:0;
+}
+
+.muted{
+  color:var(--muted);
+  font-size:13px;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+}
+
+.field{
+  display:grid;
+  gap:5px;
+}
+
+.full{
+  grid-column:1/-1;
+}
+
+input,select,textarea{
+  width:100%;
+  border:1px solid #d0d5dd;
+  border-radius:10px;
+  padding:10px;
+  background:white;
+}
+
+textarea{
+  min-height:90px;
+  resize:vertical;
+}
+
+.tabs{
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  margin-bottom:15px;
+}
+
+.tab{
+  white-space:nowrap;
+}
+
+.tab.active{
+  background:var(--primary2);
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+}
+
+.stat{
+  padding:16px;
+  border:1px solid var(--border);
+  border-radius:14px;
+}
+
+.stat-number{
+  font-size:28px;
+  font-weight:800;
+  margin-top:5px;
+}
+
+.list{
+  display:grid;
+  gap:10px;
+}
+
+.item{
+  border:1px solid var(--border);
+  border-radius:13px;
+  padding:13px;
+}
+
+.badge{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#eef2ff;
+  color:#3730a3;
+  font-size:12px;
+  font-weight:700;
+}
+
+.badge.success{
+  background:#ecfdf3;
+  color:#166534;
+}
+
+.badge.warning{
+  background:#fffbeb;
+  color:#92400e;
+}
+
+.badge.danger{
+  background:#fef2f2;
+  color:#991b1b;
+}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  display:grid;
+  place-items:center;
+  padding:15px;
+  z-index:100;
+}
+
+.modal-box{
+  width:min(720px,100%);
+  max-height:92vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:18px;
+  padding:20px;
+}
+
+.toast{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:200;
+  background:#101828;
+  color:white;
+  padding:12px 16px;
+  border-radius:12px;
+  max-width:360px;
+}
+
+.undo{
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%);
+  z-index:210;
+  background:#111827;
+  color:white;
+  padding:11px 14px;
+  border-radius:14px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  box-shadow:var(--shadow);
+}
+
+.progress{
+  height:9px;
+  background:#edf0f5;
+  border-radius:999px;
+  overflow:hidden;
+}
+
+.progress span{
+  display:block;
+  height:100%;
+  background:var(--primary);
+}
+
+.login{
+  min-height:100vh;
+  display:grid;
+  place-items:center;
+  padding:20px;
+}
+
+.login-card{
+  width:min(480px,100%);
+}
+
+.notice{
+  padding:11px;
+  border-radius:10px;
+  background:#eff6ff;
+  color:#1e40af;
+  font-size:13px;
+}
+
+.warning-box{
+  background:#fffbeb;
+  color:#92400e;
+}
+
+.success-box{
+  background:#ecfdf3;
+  color:#166534;
+}
+
+@media(max-width:850px){
+  .col8,.col6,.col4,.col3{
+    grid-column:span 12;
+  }
+
+  .stats{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .form-grid{
+    grid-template-columns:1fr;
+  }
+
+  .full{
+    grid-column:auto;
+  }
+
+  .topbar-inner{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
+
+@media(max-width:500px){
+  .container{
+    padding:12px;
+  }
+
+  .stats{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .brand{
+    font-size:16px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="login">
+
+  <div class="card login-card">
+
+    <h1>💊 Smart Medicine Reminder+</h1>
+
+    <p class="muted">
+      Secure patient, medicine and caregiver management.
+    </p>
+
+    <div class="actions">
+      <button class="btn secondary" onclick="setAuthMode('login')">
+        Login
+      </button>
+
+      <button class="btn gray" onclick="setAuthMode('signup')">
+        Caregiver Sign Up
+      </button>
+    </div>
+
+    <br>
+
+    <div class="field">
+      <label>Email</label>
+      <input id="authEmail" type="email">
+    </div>
+
+    <br>
+
+    <div class="field">
+      <label>Password</label>
+      <input id="authPassword" type="password">
+    </div>
+
+    <br>
+
+    <div id="signupBox" class="hidden">
+
+      <div class="field">
+        <label>Account Type</label>
+
+        <select id="signupRole">
+          <option value="caregiver">Caregiver</option>
+        </select>
+      </div>
+
+      <br>
+
+      <div class="notice">
+        Caregiver accounts require owner approval.
+      </div>
+
+      <br>
+
+    </div>
+
+    <button id="authButton" class="btn" onclick="submitAuth()">
+      Login
+    </button>
+
+    <hr>
+
+    <h3>☁️ Cloud Setup</h3>
+
+    <p class="muted">
+      Use your Supabase Project URL and Publishable key.
+      Never use a secret/service-role key here.
+    </p>
+
+    <div class="field">
+      <label>Project URL</label>
+      <input id="cloudUrl" placeholder="https://xxxxx.supabase.co">
+    </div>
+
+    <br>
+
+    <div class="field">
+      <label>Publishable Key</label>
+      <input id="cloudKey" placeholder="sb_publishable_...">
+    </div>
+
+    <br>
+
+    <button class="btn secondary" onclick="saveCloud()">
+      Save Cloud Settings
+    </button>
+
+    <p id="cloudStatus" class="muted"></p>
+
+    <br>
+
+    <button class="btn gray small" onclick="toggleLanguage()">
+      தமிழ் / English
+    </button>
+
+  </div>
+
+</div>
+
+
+<!-- APP -->
+<div id="app" class="hidden">
+
+<header class="topbar">
+
+  <div class="topbar-inner">
+
+    <div class="brand">
+      💊 Smart Medicine Reminder+
+    </div>
+
+    <div class="actions">
+
+      <button
+        id="installButton"
+        class="btn secondary small hidden"
+        onclick="installPWA()">
+        📱 Install App
+      </button>
+
+      <button
+        class="btn gray small"
+        onclick="toggleLanguage()">
+        தமிழ் / English
+      </button>
+
+      <button
+        class="btn gray small"
+        onclick="enableNotifications()">
+        🔔 Notifications
+      </button>
+
+      <button
+        class="btn gray small"
+        onclick="logout()">
+        Logout
+      </button>
+
+    </div>
+
+  </div>
+
+</header>
+
+
+<main class="container">
+
+<!-- NAVIGATION -->
+
+<div class="tabs">
+
+<button class="btn tab active" data-tab="dashboard">
+Dashboard
+</button>
+
+<button class="btn tab" data-tab="patients">
+Patients
+</button>
+
+<button class="btn tab" data-tab="medicines">
+Medicines
+</button>
+
+<button class="btn tab" data-tab="smartReminders">
+🔔 Smart Reminders
+</button>
+
+<button class="btn tab" data-tab="calendar">
+Calendar
+</button>
+
+<button class="btn tab" data-tab="visits">
+Doctor Visits
+</button>
+
+<button class="btn tab" data-tab="refills">
+Refills
+</button>
+
+<button class="btn tab" data-tab="emergency">
+Emergency
+</button>
+
+<button class="btn tab" data-tab="documents">
+Documents
+</button>
+
+<button class="btn tab" data-tab="finder">
+Medicine Finder
+</button>
+
+<button class="btn tab" data-tab="reports">
+Reports
+</button>
+
+<button class="btn tab" data-tab="backup">
+Backup
+</button>
+
+<button class="btn tab" data-tab="caregiver">
+Caregiver
+</button>
+
+</div>
+
+
+<!-- DASHBOARD -->
+
+<section id="dashboard" class="page">
+
+<div class="grid">
+
+<div class="card col12">
+
+<div class="actions" style="justify-content:space-between">
+
+<div>
+
+<h2>Smart Care Center</h2>
+
+<p id="welcomeText" class="muted"></p>
+
+</div>
+
+<span id="roleBadge" class="badge"></span>
+
+</div>
+
+</div>
+
+
+<div class="col12 stats">
+
+<div class="stat">
+<div class="muted">Patients</div>
+<div id="patientCount" class="stat-number">0</div>
+</div>
+
+<div class="stat">
+<div class="muted">Medicines</div>
+<div id="medicineCount" class="stat-number">0</div>
+</div>
+
+<div class="stat">
+<div class="muted">Low Stock</div>
+<div id="lowStockCount" class="stat-number">0</div>
+</div>
+
+<div class="stat">
+<div class="muted">Today Logs</div>
+<div id="todayLogCount" class="stat-number">0</div>
+</div>
+
+</div>
+
+
+<div class="card col8">
+
+<h3>📅 Today's Medicines</h3>
+
+<div id="todayMedicineList" class="list"></div>
+
+</div>
+
+
+<div class="card col4">
+
+<h3>📊 Medication Recording</h3>
+
+<div id="adherenceText"></div>
+
+<div class="progress">
+<span id="adherenceBar" style="width:0%"></span>
+</div>
+
+<p class="muted">
+This is a record-consistency indicator, not a medical diagnosis.
+</p>
+
+</div>
+
+
+<div class="card col6">
+
+<h3>⚠️ Alerts</h3>
+
+<div id="dashboardAlerts" class="list"></div>
+
+</div>
+
+
+<div class="card col6">
+
+<h3>🧭 Treatment Journey</h3>
+
+<div id="treatmentJourney" class="list"></div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- PATIENTS -->
+
+<section id="patients" class="page hidden">
+
+<div class="card">
+
+<div class="actions" style="justify-content:space-between">
+
+<div>
+
+<h2>👤 Patients</h2>
+
+<p class="muted">
+Add, edit and manage patients.
+</p>
+
+</div>
+
+<button class="btn" onclick="openPatientModal()">
++ Add Patient
+</button>
+
+</div>
+
+<br>
+
+<input
+id="patientSearch"
+oninput="renderPatients()"
+placeholder="Search patient">
+
+<br><br>
+
+<div id="patientList" class="list"></div>
+
+</div>
+
+</section>
+
+
+<!-- MEDICINES -->
+
+<section id="medicines" class="page hidden">
+
+<div class="card">
+
+<div class="actions" style="justify-content:space-between">
+
+<div>
+
+<h2>💊 Medicines</h2>
+
+<p class="muted">
+Dose must be entered exactly as prescribed.
+</p>
+
+</div>
+
+<button class="btn" onclick="openMedicineModal()">
++ Add Medicine
+</button>
+
+</div>
+
+<br>
+
+<div class="form-grid">
+
+<div class="field">
+
+<label>Search medicine</label>
+
+<input
+id="medicineSearch"
+oninput="renderMedicines()"
+placeholder="Search medicine">
+
+</div>
+
+<div class="field">
+
+<label>Patient</label>
+
+<select
+id="medicinePatientFilter"
+onchange="renderMedicines()">
+
+<option value="">
+All patients
+</option>
+
+</select>
+
+</div>
+
+</div>
+
+<br>
+
+<div id="medicineList" class="list"></div>
+
+</div>
+
+</section>
+
+<!-- SMART REMINDERS / NEW FEATURES -->
+<section id="smartReminders" class="page hidden">
+<div class="grid">
+<div class="card col12">
+<h2>🔔 Smart Medicine Reminders</h2>
+<p class="muted">Browser reminders, Taken/Missed history, and Daily/Weekly repeat settings.</p>
+<div class="actions">
+<button class="btn" onclick="enableMedicineNotifications()">🔔 Enable Notifications</button>
+<span id="notificationStatus" class="badge">Not enabled</span>
+</div>
+<p id="nextReminderText" class="muted"></p>
+</div>
+<div class="card col6">
+<h3>📜 Taken / Missed History</h3>
+<div class="form-grid">
+<div class="field"><label>History filter</label><select id="historyFilter" onchange="renderSmartFeatures()"><option value="all">All</option><option value="taken">Taken</option><option value="missed">Missed</option></select></div>
+<div class="field"><label>Date</label><input id="historyDate" type="date" onchange="renderSmartFeatures()"></div>
+</div><br>
+<div id="medicineHistoryList" class="list"></div>
+</div>
+<div class="card col6">
+<h3>🔄 Daily / Weekly Repeat</h3>
+<p class="muted">Repeat preferences are saved on this device.</p>
+<div class="field"><label>Medicine</label><select id="repeatMedicine" onchange="loadRepeatSetting()"></select></div><br>
+<div class="field"><label>Repeat</label><select id="repeatType"><option value="none">No repeat</option><option value="daily">Daily</option><option value="weekly">Weekly</option></select></div><br>
+<button class="btn" onclick="saveRepeatSetting()">Save Repeat</button>
+<span id="repeatStatus" class="muted"></span>
+</div>
+</div>
+</section>
+
+<!-- CALENDAR -->
+
+<section id="calendar" class="page hidden">
+
+<div class="card">
+
+<h2>🗓️ Medicine Calendar</h2>
+
+<input
+id="calendarDate"
+type="date"
+onchange="renderCalendar()">
+
+<br><br>
+
+<div id="calendarList" class="list"></div>
+
+</div>
+
+</section>
+
+
+<!-- VISITS -->
+
+<section id="visits" class="page hidden">
+
+<div class="card">
+
+<div class="actions" style="justify-content:space-between">
+
+<h2>🏥 Doctor Visits</h2>
+
+<button class="btn" onclick="openVisitModal()">
++ Add Visit
+</button>
+
+</div>
+
+<div id="visitList" class="list"></div>
+
+</div>
+
+</section>
+
+
+<!-- REFILLS -->
+
+<section id="refills" class="page hidden">
+
+<div class="card">
+
+<h2>📦 Refill Tracker</h2>
+
+<div id="refillList" class="list"></div>
+
+</div>
+
+</section>
+
+
+<!-- EMERGENCY -->
+
+<section id="emergency" class="page hidden">
+
+<div class="card">
+
+<h2>🆘 Emergency Health Card</h2>
+
+<p class="muted">
+QR may contain sensitive health information. Share only with trusted people.
+</p>
+
+<button class="btn" onclick="openEmergencyModal()">
+Edit Emergency Card
+</button>
+
+<br><br>
+
+<div id="emergencyView"></div>
+
+<div id="qrContainer"></div>
+
+</div>
+
+</section>
+
+
+<!-- DOCUMENTS -->
+
+<section id="documents" class="page hidden">
+
+<div class="card">
+
+<div class="actions" style="justify-content:space-between">
+
+<h2>📄 Medical Documents</h2>
+
+<button class="btn" onclick="openDocumentModal()">
++ Add Document
+</button>
+
+</div>
+
+<div id="documentList" class="list"></div>
+
+</div>
+
+</section>
+
+
+<!-- FINDER -->
+
+<section id="finder" class="page hidden">
+
+<div class="card">
+
+<h2>🔎 Medicine Finder</h2>
+
+<p class="notice">
+
+This is informational only. Example brands can differ by country.
+They are not endorsements and are not substitution recommendations.
+
+</p>
+
+<br>
+
+<input
+id="finderSearch"
+oninput="renderFinder()"
+placeholder="Search medicine or generic name">
+
+<br><br>
+
+<div id="finderList" class="list"></div>
+
+</div>
+
+</section>
+
+
+<!-- REPORT -->
+
+<section id="reports" class="page hidden">
+
+<div class="card">
+
+<div class="actions" style="justify-content:space-between">
+
+<h2>📊 Professional Monthly Report</h2>
+
+<button class="btn secondary" onclick="printReport()">
+🖨️ Print
+</button>
+
+</div>
+
+<br>
+
+<div class="form-grid">
+
+<div class="field">
+
+<label>Month</label>
+
+<input
+id="reportMonth"
+type="month"
+onchange="renderReport()">
+
+</div>
+
+<div class="field">
+
+<label>Patient</label>
+
+<select
+id="reportPatient"
+onchange="renderReport()">
+
+<option value="">
+All patients
+</option>
+
+</select>
+
+</div>
+
+</div>
+
+<br>
+
+<div id="reportContent"></div>
+
+</div>
+
+</section>
+
+
+<!-- BACKUP -->
+
+<section id="backup" class="page hidden">
+
+<div class="grid">
+
+<div class="card col6">
+
+<h2>💾 Backup</h2>
+
+<p class="muted">
+Download your records as JSON.
+Keep the file private.
+</p>
+
+<button class="btn" onclick="exportBackup()">
+Download JSON Backup
+</button>
+
+</div>
+
+
+<div class="card col6">
+
+<h2>📥 Restore</h2>
+
+<p class="muted">
+Restore records from a backup.
+Existing records are not automatically deleted.
+</p>
+
+<input
+type="file"
+id="restoreFile"
+accept=".json"
+onchange="restoreBackup(event)">
+
+</div>
+
+
+<div class="card col12">
+
+<h2>📑 CSV Export</h2>
+
+<button class="btn secondary" onclick="exportCSV()">
+Download Medicines CSV
+</button>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- CAREGIVER -->
+
+<section id="caregiver" class="page hidden">
+
+<div class="grid">
+
+<div class="card col6">
+
+<h2>👨‍👩‍👧 Caregiver Account</h2>
+
+<div id="caregiverInfo"></div>
+
+</div>
+
+
+<div class="card col6">
+
+<h2>🔐 Caregiver Approval</h2>
+
+<div id="pendingCaregivers"></div>
+
+</div>
+
+</div>
+
+</section>
+
+</main>
+
+</div>
+
+
+<!-- MODAL -->
+
+<div id="modal" class="modal hidden">
+
+<div class="modal-box">
+
+<div class="actions" style="justify-content:space-between">
+
+<h2 id="modalTitle"></h2>
+
+<button class="btn gray small" onclick="closeModal()">
+✕
+</button>
+
+</div>
+
+<br>
+
+<div id="modalBody"></div>
+
+</div>
+
+</div>
+
+
+<!-- TOAST -->
+
+<div id="toast" class="toast hidden"></div>
+
+
+<!-- UNDO -->
+
+<div id="undoBar" class="undo hidden">
+
+<span id="undoMessage">
+Medicine deleted
+</span>
+
+<button class="btn small" onclick="undoMedicineDelete()">
+Undo
+</button>
+
+<b id="undoTimer"></b>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   GLOBAL DATA
+========================================================= */
+
+let supabaseClient=null;
+let currentUser=null;
+let currentProfile=null;
+
+let patients=[];
+let medicines=[];
+let visits=[];
+let emergencies=[];
+let documents=[];
+let doseLogs=[];
+
+let editingMedicineId=null;
+
+let deletedMedicine=null;
+let undoInterval=null;
+
+let deferredPrompt=null;
+let reminderTimer=null;
+let reminderShownToday=JSON.parse(localStorage.getItem("smr_reminder_shown") || "{}");
+
+let authMode="login";
+
+let language=
+localStorage.getItem("smr_language") || "en";
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function $(id){
+  return document.getElementById(id);
+}
+
+function escapeHTML(value){
+  return String(value ?? "")
+  .replace(/&/g,"&amp;")
+  .replace(/</g,"&lt;")
+  .replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;")
+  .replace(/'/g,"&#039;");
+}
+
+function today(){
+  return new Date().toISOString().slice(0,10);
+}
+
+function toast(message){
+
+  $("toast").textContent=message;
+
+  $("toast").classList.remove("hidden");
+
+  setTimeout(()=>{
+    $("toast").classList.add("hidden");
+  },3500);
+
+}
+
+function patientName(id){
+
+  const p=patients.find(x=>x.id===id);
+
+  return p ? p.name : "Unknown";
+
+}
+
+
+/* =========================================================
+   CLOUD
+========================================================= */
+
+function initSupabase(){
+
+  const url=localStorage.getItem("smr_url");
+  const key=localStorage.getItem("smr_key");
+
+  if(!url || !key) return false;
+
+  supabaseClient=
+    window.supabase.createClient(url,key,{
+      auth:{
+        persistSession:true,
+        autoRefreshToken:true,
+        detectSessionInUrl:true
+      }
+    });
+
+  return true;
+}
+
+
+function saveCloud(){
+
+  let url=$("cloudUrl").value.trim();
+  const key=$("cloudKey").value.trim();
+
+  url=url.replace(/\/rest\/v1\/?$/,"");
+
+  if(!url || !key){
+
+    toast("Enter Supabase URL and Publishable key.");
+
+    return;
+  }
+
+  localStorage.setItem("smr_url",url);
+  localStorage.setItem("smr_key",key);
+
+  initSupabase();
+
+  $("cloudStatus").textContent=
+    "Cloud connection configured.";
+
+  toast("Cloud settings saved.");
+
+}
+
+
+/* =========================================================
+   AUTH
+========================================================= */
+
+function setAuthMode(mode){
+
+  authMode=mode;
+
+  $("signupBox")
+  .classList.toggle("hidden",mode!=="signup");
+
+  $("authButton").textContent=
+    mode==="login"
+    ?"Login"
+    :"Create Caregiver Account";
+
+}
+
+
+async function submitAuth(){
+
+  if(!initSupabase()){
+
+    toast("Save Cloud Settings first.");
+
+    return;
+  }
+
+  const email=$("authEmail").value.trim();
+  const password=$("authPassword").value;
+
+  if(!email || password.length<6){
+
+    toast("Enter valid email and password.");
+
+    return;
+  }
+
+  let result;
+
+  if(authMode==="login"){
+
+    result=
+      await supabaseClient.auth
+      .signInWithPassword({
+        email,
+        password
+      });
+
+  }else{
+
+    result=
+      await supabaseClient.auth
+      .signUp({
+        email,
+        password,
+        options:{
+          data:{
+            requested_role:"caregiver"
+          }
+        }
+      });
+
+  }
+
+  if(result.error){
+
+    toast(result.error.message);
+
+    return;
+  }
+
+  if(authMode==="signup"){
+
+    toast(
+      "Caregiver account created. Owner approval may be required."
+    );
+
+    return;
+  }
+
+  await startApplication(
+    result.data.session?.user
+  );
+
+}
+
+
+async function startApplication(user){
+
+  if(!user) return;
+
+  currentUser=user;
+
+  const profileResult=
+    await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id",user.id)
+    .maybeSingle();
+
+  currentProfile=
+    profileResult.data ||
+    {
+      id:user.id,
+      email:user.email,
+      role:"owner",
+      status:"approved"
+    };
+
+  if(currentProfile.status==="pending"){
+
+    $("loginScreen").innerHTML=`
+
+      <div class="card login-card">
+
+        <h2>⏳ Waiting for approval</h2>
+
+        <p>
+          Your caregiver account is waiting for owner approval.
+        </p>
+
+        <button
+          class="btn"
+          onclick="logout()">
+          Logout
+        </button>
+
+      </div>
+
+    `;
+
+    return;
+  }
+
+  if(currentProfile.status==="denied"){
+
+    $("loginScreen").innerHTML=`
+
+      <div class="card login-card">
+
+        <h2>Access denied</h2>
+
+        <button
+          class="btn"
+          onclick="logout()">
+          Logout
+        </button>
+
+      </div>
+
+    `;
+
+    return;
+  }
+
+  $("loginScreen").classList.add("hidden");
+
+  $("app").classList.remove("hidden");
+
+  $("welcomeText").textContent=
+    user.email || "";
+
+  $("roleBadge").textContent=
+    currentProfile.role || "user";
+
+  await loadAll();
+
+  showTab("dashboard");
+
+  registerServiceWorker();
+  startReminderTimer();
+
+}
+
+
+async function logout(){
+
+  if(supabaseClient){
+
+    await supabaseClient.auth.signOut();
+
+  }
+
+  location.reload();
+
+}
+
+
+/* =========================================================
+   DATABASE
+========================================================= */
+
+async function loadTable(table){
+
+  const result=
+    await supabaseClient
+    .from(table)
+    .select("*")
+    .order("created_at",{ascending:false});
+
+  if(result.error){
+
+    console.error(result.error);
+
+    toast(
+      table+
+      ": "+
+      result.error.message
+    );
+
+    return [];
+
+  }
+
+  return result.data || [];
+
+}
+
+
+async function loadAll(){
+
+  patients=
+    await loadTable("app_patients");
+
+  medicines=
+    await loadTable("app_medicines");
+
+  visits=
+    await loadTable("app_visits");
+
+  emergencies=
+    await loadTable("app_emergencies");
+
+  documents=
+    await loadTable("app_documents");
+
+  doseLogs=
+    await loadTable("app_dose_logs");
+
+  renderEverything();
+
+}
+
+
+function renderEverything(){
+
+  renderPatients();
+
+  renderPatientOptions();
+
+  renderMedicines();
+
+  renderDashboard();
+
+  renderCalendar();
+
+  renderVisits();
+
+  renderRefills();
+
+  renderEmergency();
+
+  renderDocuments();
+
+  renderFinder();
+
+  renderReport();
+
+  renderCaregiver();
+  renderSmartFeatures();
+
+}
+
+
+/* =========================================================
+   NEW FEATURES: SMART REMINDERS / HISTORY / REPEAT
+========================================================= */
+
+function repeatSettings(){
+  try{return JSON.parse(localStorage.getItem("smr_repeat_settings") || "{}");}
+  catch(e){return {};}
+}
+
+function enableMedicineNotifications(){
+  if(!("Notification" in window)){toast("This browser does not support notifications.");return;}
+  Notification.requestPermission().then(permission=>{
+    updateNotificationStatus();
+    if(permission==="granted"){toast("Medicine reminders enabled.");checkMedicineReminders();}
+    else toast("Notifications were not allowed.");
+  });
+}
+
+function updateNotificationStatus(){
+  const el=$("notificationStatus"); if(!el)return;
+  const p=("Notification" in window)?Notification.permission:"unsupported";
+  el.textContent=p==="granted"?"Notifications enabled":p==="denied"?"Notifications blocked":p==="unsupported"?"Not supported":"Not enabled";
+}
+
+function reminderKey(m){return today()+"_"+m.id+"_"+(m.time||"");}
+
+function checkMedicineReminders(){
+  updateNotificationStatus();
+  if(!currentUser || !("Notification" in window) || Notification.permission!=="granted")return;
+  const now=new Date(), hhmm=now.toTimeString().slice(0,5), settings=repeatSettings();
+  const active=medicines.filter(m=>(!m.start_date||m.start_date<=today())&&(!m.end_date||m.end_date>=today())&&m.time);
+  active.filter(m=>{
+    const repeat=settings[m.id]||"daily";
+    if(repeat==="weekly"){
+      const start=m.start_date?new Date(m.start_date+"T00:00:00"):new Date();
+      const days=Math.floor((new Date(today()+"T00:00:00")-start)/86400000);
+      return days>=0 && days%7===0;
+    }
+    return repeat!=="none" || !settings[m.id];
+  }).filter(m=>m.time.slice(0,5)===hhmm).forEach(m=>{
+    const key=reminderKey(m); if(reminderShownToday[key])return;
+    new Notification("💊 Medicine Reminder",{body:`${m.name} — ${m.dose||"Take your prescribed dose"}${m.food?" • "+m.food:""}`});
+    reminderShownToday[key]=true;
+    localStorage.setItem("smr_reminder_shown",JSON.stringify(reminderShownToday));
+  });
+  const next=active.sort((a,b)=>a.time.localeCompare(b.time))[0];
+  if($("nextReminderText"))$("nextReminderText").textContent=next?`Next scheduled medicine time: ${next.time} — ${next.name}`:"No medicine time is scheduled.";
+}
+
+function renderMedicineHistory(){
+  const list=$("medicineHistoryList"); if(!list)return;
+  const filter=$("historyFilter")?.value||"all", date=$("historyDate")?.value||today();
+  const rows=doseLogs.filter(x=>x.log_date===date&&(filter==="all"||x.status===filter)).sort((a,b)=>(b.created_at||"").localeCompare(a.created_at||""));
+  list.innerHTML=rows.length?rows.map(x=>{
+    const m=medicines.find(item=>item.id===x.medicine_id);
+    return `<div class="item"><b>${escapeHTML(m?.name||"Medicine")}</b><p class="muted">${escapeHTML(m?.dose||"")} ${escapeHTML(m?.unit||"")} • ${escapeHTML(patientName(m?.patient_id))}</p><span class="badge ${x.status==="taken"?"success":"danger"}">${escapeHTML(x.status)}</span></div>`;
+  }).join(""):"<p class='muted'>No dose history for this date.</p>";
+}
+
+function renderRepeatOptions(){
+  const select=$("repeatMedicine"); if(!select)return;
+  const old=select.value;
+  select.innerHTML=`<option value="">Select medicine</option>`+medicines.map(m=>`<option value="${escapeHTML(m.id)}">${escapeHTML(m.name)} — ${escapeHTML(patientName(m.patient_id))}</option>`).join("");
+  if(old&&medicines.some(m=>m.id===old))select.value=old; else if(medicines[0])select.value=medicines[0].id;
+  loadRepeatSetting();
+}
+
+function loadRepeatSetting(){
+  const id=$("repeatMedicine")?.value,type=$("repeatType"); if(!id||!type)return;
+  type.value=repeatSettings()[id]||"daily";
+}
+
+function saveRepeatSetting(){
+  const id=$("repeatMedicine")?.value,type=$("repeatType")?.value;
+  if(!id){toast("Select a medicine first.");return;}
+  const settings=repeatSettings(); settings[id]=type;
+  localStorage.setItem("smr_repeat_settings",JSON.stringify(settings));
+  if($("repeatStatus"))$("repeatStatus").textContent=" Saved on this device.";
+  toast("Repeat setting saved.");
+}
+
+function renderSmartFeatures(){
+  updateNotificationStatus();renderMedicineHistory();renderRepeatOptions();checkMedicineReminders();
+}
+
+function startReminderTimer(){
+  if(reminderTimer)clearInterval(reminderTimer);
+  reminderTimer=setInterval(checkMedicineReminders,30000);checkMedicineReminders();
+}
+
+/* =========================================================
+   TABS
+========================================================= */
+
+document
+.querySelectorAll(".tab")
+.forEach(button=>{
+
+  button.addEventListener("click",()=>{
+
+    showTab(button.dataset.tab);
+
+  });
+
+});
+
+
+function showTab(tab){
+
+  document
+  .querySelectorAll(".page")
+  .forEach(page=>{
+    page.classList.add("hidden");
+  });
+
+  $(tab).classList.remove("hidden");
+
+  document
+  .querySelectorAll(".tab")
+  .forEach(button=>{
+    button.classList.toggle(
+      "active",
+      button.dataset.tab===tab
+    );
+  });
+
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+function openModal(title,html){
+
+  $("modalTitle").textContent=title;
+
+  $("modalBody").innerHTML=html;
+
+  $("modal").classList.remove("hidden");
+
+}
+
+
+function closeModal(){
+
+  $("modal").classList.add("hidden");
+
+}
+
+
+/* =========================================================
+   PATIENT
+========================================================= */
+
+function openPatientModal(id=""){
+
+  const patient=
+    patients.find(x=>x.id===id) || {};
+
+  openModal(
+    id ? "✏️ Edit Patient":"👤 Add Patient",
+
+    `
+
+    <div class="form-grid">
+
+      <div class="field">
+
+        <label>Name *</label>
+
+        <input
+          id="pName"
+          value="${escapeHTML(patient.name)}">
+
+      </div>
+
+      <div class="field">
+
+        <label>Age</label>
+
+        <input
+          id="pAge"
+          type="number"
+          value="${escapeHTML(patient.age)}">
+
+      </div>
+
+      <div class="field">
+
+        <label>Phone</label>
+
+        <input
+          id="pPhone"
+          value="${escapeHTML(patient.phone)}">
+
+      </div>
+
+      <div class="field">
+
+        <label>Purpose</label>
+
+        <input
+          id="pPurpose"
+          value="${escapeHTML(patient.purpose)}">
+
+      </div>
+
+      <div class="field full">
+
+        <label>Notes</label>
+
+        <textarea id="pNotes">${escapeHTML(patient.notes)}</textarea>
+
+      </div>
+
+    </div>
+
+    <br>
+
+    <button
+      class="btn"
+      onclick="savePatient('${id}')">
+      Save Patient
+    </button>
+
+    `
+  );
+
+}
+
+
+async function savePatient(id){
+
+  const row={
+
+    name:$("pName").value.trim(),
+
+    age:$("pAge").value || null,
+
+    phone:$("pPhone").value.trim(),
+
+    purpose:$("pPurpose").value.trim(),
+
+    notes:$("pNotes").value.trim()
+
+  };
+
+  if(!row.name){
+
+    toast("Patient name is required.");
+
+    return;
+  }
+
+  let result;
+
+  if(id){
+
+    result=
+      await supabaseClient
+      .from("app_patients")
+      .update(row)
+      .eq("id",id);
+
+  }else{
+
+    result=
+      await supabaseClient
+      .from("app_patients")
+      .insert(row);
+
+  }
+
+  if(result.error){
+
+    toast(result.error.message);
+
+    return;
+  }
+
+  closeModal();
+
+  await loadAll();
+
+  toast(
+    id
+    ?"Patient updated."
+    :"Patient added."
+  );
+
+}
+
+
+async function deletePatient(id){
+
+  if(!confirm(
+    "Delete this patient? Linked medicine records may remain."
+  )) return;
+
+  const result=
+    await supabaseClient
+    .from("app_patients")
+    .delete()
+    .eq("id",id);
+
+  if(result.error){
+
+    toast(result.error.message);
+
+    return;
+  }
+
+  await loadAll();
+
+  toast("Patient deleted.");
+
+}
+
+
+function renderPatients(){
+
+  const query=
+    ($("patientSearch")?.value || "")
+    .toLowerCase();
+
+  const filtered=
+    patients.filter(p=>
+      (
+        (p.name||"")+" "+
+        (p.phone||"")+" "+
+        (p.purpose||"")
+      )
+      .toLowerCase()
+      .includes(query)
+    );
+
+  $("patientList").innerHTML=
+    filtered.length
+
+    ?
+
+    filtered.map(p=>`
+
+      <div class="item">
+
+        <div class="actions"
+             style="justify-content:space-between">
+
+          <b>${escapeHTML(p.name)}</b>
+
+          <span class="badge">
+            ${medicines.filter(
+              m=>m.patient_id===p.id
+            ).length}
+            medicines
+          </span>
+
+        </div>
+
+        <p class="muted">
+          Age: ${escapeHTML(p.age || "—")}
+          •
+          Phone: ${escapeHTML(p.phone || "—")}
+        </p>
+
+        <p>
+          ${escapeHTML(p.purpose || "")}
+        </p>
+
+        <div class="actions">
+
+          <button
+            class="btn secondary small"
+            onclick="openPatientModal('${p.id}')">
+            ✏️ Edit
+          </button>
+
+          <button
+            class="btn danger small"
+            onclick="deletePatient('${p.id}')">
+            🗑️ Delete
+          </button>
+
+        </div>
+
+      </div>
+
+    `).join("")
+
+    :
+
+    `<p class="muted">
+      No patients found.
+    </p>`;
+
+}
+
+
+/* =========================================================
+   PATIENT OPTIONS
+========================================================= */
+
+function renderPatientOptions(){
+
+  const patientOptions=
+    patients
+    .map(p=>`
+      <option value="${p.id}">
+        ${escapeHTML(p.name)}
+      </option>
+    `)
+    .join("");
+
+  const medicineFilter=
+    $("medicinePatientFilter");
+
+  const reportPatient=
+    $("reportPatient");
+
+  const oldMedicine=
+    medicineFilter?.value;
+
+  const oldReport=
+    reportPatient?.value;
+
+  if(medicineFilter){
+
+    medicineFilter.innerHTML=
+      `<option value="">All patients</option>`
+      +
+      patientOptions;
+
+    medicineFilter.value=oldMedicine || "";
+
+  }
+
+  if(reportPatient){
+
+    reportPatient.innerHTML=
+      `<option value="">All patients</option>`
+      +
+      patientOptions;
+
+    reportPatient.value=oldReport || "";
+
+  }
+
+}
+
+
+/* =========================================================
+   MEDICINE
+========================================================= */
+
+function openMedicineModal(id=""){
+
+  editingMedicineId=id || null;
+
+  const medicine=
+    medicines.find(x=>x.id===id) || {};
+
+  const options=
+    patients
+    .map(p=>`
+
+      <option
+        value="${p.id}"
+        ${medicine.patient_id===p.id?"selected":""}>
+        ${escapeHTML(p.name)}
+      </option>
+
+    `)
+    .join("");
+
+  openModal(
+
+    id
+    ?"✏️ Edit Medicine"
+    :"💊 Add Medicine",
+
+    `
+
+    <div class="form-grid">
+
+      <div class="field">
+
+        <label>Medicine Name *</label>
+
+        <input
+          id="mName"
+          value="${escapeHTML(medicine.name)}">
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Patient *</label>
+
+        <select id="mPatient">
+
+          <option value="">
+            Select patient
+          </option>
+
+          ${options}
+
+        </select>
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Dose *</label>
+
+        <input
+          id="mDose"
+          value="${escapeHTML(medicine.dose)}"
+          placeholder="Exactly as prescribed">
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Unit</label>
+
+        <select id="mUnit">
+
+          ${[
+            "tablet",
+            "capsule",
+            "mL",
+            "drops",
+            "injection",
+            "sachet",
+            "puff",
+            "other"
+          ]
+          .map(unit=>`
+
+            <option
+              ${medicine.unit===unit?"selected":""}>
+              ${unit}
+            </option>
+
+          `)
+          .join("")}
+
+        </select>
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Type</label>
+
+        <input
+          id="mType"
+          value="${escapeHTML(medicine.type)}"
+          placeholder="Tablet / Syrup / Injection">
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Purpose</label>
+
+        <input
+          id="mPurpose"
+          value="${escapeHTML(medicine.purpose)}">
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Medicine Time</label>
+
+        <input
+          id="mTime"
+          type="time"
+          value="${escapeHTML(medicine.time)}">
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Food Instruction</label>
+
+        <select id="mFood">
+
+          ${[
+            "Anytime",
+            "Before Food",
+            "After Food",
+            "With Food"
+          ]
+          .map(x=>`
+
+            <option
+              ${medicine.food===x?"selected":""}>
+              ${x}
+            </option>
+
+          `)
+          .join("")}
+
+        </select>
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Start Date</label>
+
+        <input
+          id="mStart"
+          type="date"
+          value="${escapeHTML(
+            medicine.start_date || today()
+          )}">
+
+      </div>
+
+
+      <div class="field">
+
+        <label>End Date</label>
+
+        <input
+          id="mEnd"
+          type="date"
+          value="${escapeHTML(
+            medicine.end_date
+          )}">
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Current Stock</label>
+
+        <input
+          id="mStock"
+          type="number"
+          min="0"
+          value="${escapeHTML(
+            medicine.stock ?? 0
+          )}">
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Low Stock Threshold</label>
+
+        <input
+          id="mLowStock"
+          type="number"
+          min="0"
+          value="${escapeHTML(
+            medicine.low_stock ?? 5
+          )}">
+
+      </div>
+
+
+      <div class="field full">
+
+        <label>Notes</label>
+
+        <textarea id="mNotes">
+${escapeHTML(medicine.notes)}
+        </textarea>
+
+      </div>
+
+    </div>
+
+    <br>
+
+    <div class="notice">
+
+      Enter the dose exactly as prescribed.
+      The app does not calculate or recommend doses.
+
+    </div>
+
+    <br>
+
+    <button
+      class="btn"
+      onclick="saveMedicine()">
+
+      ${id
+        ?"Update Medicine"
+        :"Save Medicine"}
+
+    </button>
+
+    `
+  );
+
+}
+
+
+async function saveMedicine(){
+
+  const row={
+
+    name:$("mName").value.trim(),
+
+    patient_id:$("mPatient").value || null,
+
+    dose:$("mDose").value.trim(),
+
+    unit:$("mUnit").value,
+
+    type:$("mType").value.trim(),
+
+    purpose:$("mPurpose").value.trim(),
+
+    time:$("mTime").value || null,
+
+    food:$("mFood").value,
+
+    start_date:$("mStart").value || null,
+
+    end_date:$("mEnd").value || null,
+
+    stock:Number($("mStock").value || 0),
+
+    low_stock:Number($("mLowStock").value || 5),
+
+    notes:$("mNotes").value.trim()
+
+  };
+
+
+  if(
+    !row.name ||
+    !row.patient_id ||
+    !row.dose
+  ){
+
+    toast(
+      "Medicine name, patient and dose are required."
+    );
+
+    return;
+  }
+
+
+  let result;
+
+
+  if(editingMedicineId){
+
+    result=
+      await supabaseClient
+      .from("app_medicines")
+      .update(row)
+      .eq("id",editingMedicineId);
+
+  }else{
+
+    result=
+      await supabaseClient
+      .from("app_medicines")
+      .insert(row);
+
+  }
+
+
+  if(result.error){
+
+    toast(result.error.message);
+
+    return;
+  }
+
+
+  closeModal();
+
+  await loadAll();
+
+  toast(
+    editingMedicineId
+    ?"Medicine updated."
+    :"Medicine added."
+  );
+
+  editingMedicineId=null;
+
+}
+
+
+/* =========================================================
+   MEDICINE LIST
+========================================================= */
+
+function renderMedicines(){
+
+  const query=
+    ($("medicineSearch")?.value || "")
+    .toLowerCase();
+
+  const patientFilter=
+    $("medicinePatientFilter")?.value || "";
+
+  const filtered=
+    medicines.filter(m=>{
+
+      const text=
+        (
+          (m.name||"")+" "+
+          (m.type||"")+" "+
+          (m.purpose||"")
+        )
+        .toLowerCase();
+
+      return(
+        text.includes(query) &&
+        (
+          !patientFilter ||
+          m.patient_id===patientFilter
+        )
+      );
+
+    });
+
+
+  $("medicineList").innerHTML=
+    filtered.length
+
+    ?
+
+    filtered.map(m=>{
+
+      const low=
+        Number(m.stock||0)
+        <=
+        Number(m.low_stock ?? 5);
+
+      return `
+
+      <div class="item">
+
+        <div
+          class="actions"
+          style="justify-content:space-between">
+
+          <b>
+            ${escapeHTML(m.name)}
+          </b>
+
+          <span
+            class="badge
+            ${low?"danger":"success"}">
+
+            ${low
+              ?"Low Stock"
+              :"Stock OK"}
+
+          </span>
+
+        </div>
+
+
+        <p class="muted">
+
+          Patient:
+          ${escapeHTML(
+            patientName(m.patient_id)
+          )}
+
+          <br>
+
+          Dose:
+          ${escapeHTML(m.dose)}
+          ${escapeHTML(m.unit||"")}
+
+          <br>
+
+          Time:
+          ${escapeHTML(m.time||"—")}
+
+          <br>
+
+          ${escapeHTML(m.food||"")}
+
+          <br>
+
+          ${escapeHTML(m.start_date||"")}
+          →
+          ${escapeHTML(m.end_date||"")}
+
+          <br>
+
+          Stock:
+          ${escapeHTML(m.stock ?? 0)}
+
+        </p>
+
+
+        <div class="actions">
+
+          <button
+            class="btn success small"
+            onclick="logDose('${m.id}','taken')">
+            ✓ Taken
+          </button>
+
+
+          <button
+            class="btn danger small"
+            onclick="logDose('${m.id}','missed')">
+            ✕ Missed
+          </button>
+
+
+          <button
+            class="btn secondary small"
+            onclick="openMedicineModal('${m.id}')">
+            ✏️ Edit
+          </button>
+
+
+          <button
+            class="btn danger small"
+            onclick="deleteMedicine('${m.id}')">
+            🗑️ Delete
+          </button>
+
+        </div>
+
+      </div>
+
+      `;
+
+    }).join("")
+
+    :
+
+    `<p class="muted">
+      No medicines found.
+    </p>`;
+
+}
+
+
+/* =========================================================
+   DOSE LOG
+========================================================= */
+
+async function logDose(medicineId,status){
+
+  const date=today();
+
+  const existing=
+    doseLogs.find(
+      x=>
+        x.medicine_id===medicineId &&
+        x.log_date===date
+    );
+
+
+  let result;
+
+
+  if(existing){
+
+    result=
+      await supabaseClient
+      .from("app_dose_logs")
+      .update({
+        status
+      })
+      .eq("id",existing.id);
+
+  }else{
+
+    result=
+      await supabaseClient
+      .from("app_dose_logs")
+      .insert({
+        medicine_id:medicineId,
+        log_date:date,
+        status
+      });
+
+  }
+
+
+  if(result.error){
+
+    toast(result.error.message);
+
+    return;
+  }
+
+
+  await loadAll();
+
+  toast(
+    status==="taken"
+    ?"Marked as Taken."
+    :"Marked as Missed."
+  );
+
+}
+
+
+/* =========================================================
+   DELETE + UNDO
+========================================================= */
+
+async function deleteMedicine(id){
+
+  const medicine=
+    medicines.find(x=>x.id===id);
+
+  if(!medicine) return;
+
+
+  if(!confirm(
+    `Delete "${medicine.name}"?\n\nYou will have 15 seconds to undo.`
+  )) return;
+
+
+  const logs=
+    doseLogs
+    .filter(x=>x.medicine_id===id)
+    .map(x=>({
+      log_date:x.log_date,
+      status:x.status
+    }));
+
+
+  /* Delete dose logs first because medicine has
+     cascading relationship in the database. */
+
+  const logDelete=
+    await supabaseClient
+    .from("app_dose_logs")
+    .delete()
+    .eq("medicine_id",id);
+
+
+  if(logDelete.error){
+
+    toast(logDelete.error.message);
+
+    return;
+  }
+
+
+  const medicineDelete=
+    await supabaseClient
+    .from("app_medicines")
+    .delete()
+    .eq("id",id);
+
+
+  if(medicineDelete.error){
+
+    toast(medicineDelete.error.message);
+
+    return;
+  }
+
+
+  deletedMedicine={
+
+    medicine:{
+      name:medicine.name,
+      patient_id:medicine.patient_id,
+      dose:medicine.dose,
+      unit:medicine.unit,
+      type:medicine.type,
+      purpose:medicine.purpose,
+      time:medicine.time,
+      food:medicine.food,
+      start_date:medicine.start_date,
+      end_date:medicine.end_date,
+      stock:medicine.stock,
+      low_stock:medicine.low_stock,
+      notes:medicine.notes
+    },
+
+    logs
+
+  };
+
+
+  await loadAll();
+
+  showUndoBar();
+
+}
+
+
+function showUndoBar(){
+
+  clearInterval(undoInterval);
+
+  const end=
+    Date.now()+15000;
+
+
+  $("undoBar")
+  .classList
+  .remove("hidden");
+
+
+  function update(){
+
+    const seconds=
+      Math.max(
+        0,
+        Math.ceil(
+          (end-Date.now())/1000
+        )
+      );
+
+
+    $("undoMessage").textContent=
+      "Medicine deleted";
+
+    $("undoTimer").textContent=
+      seconds+"s";
+
+
+    if(seconds<=0){
+
+      clearInterval(undoInterval);
+
+      deletedMedicine=null;
+
+      $("undoBar")
+      .classList
+      .add("hidden");
+
+    }
+
+  }
+
+
+  update();
+
+  undoInterval=
+    setInterval(update,250);
+
+}
+
+
+async function undoMedicineDelete(){
+
+  if(!deletedMedicine){
+
+    toast("Undo time expired.");
+
+    return;
+  }
+
+
+  const result=
+    await supabaseClient
+    .from("app_medicines")
+    .insert(
+      deletedMedicine.medicine
+    )
+    .select()
+    .single();
+
+
+  if(result.error){
+
+    toast(
+      "Restore failed: "+
+      result.error.message
+    );
+
+    return;
+  }
+
+
+  const restoredMedicineId=
+    result.data.id;
+
+
+  for(
+    const log
+    of deletedMedicine.logs
+  ){
+
+    await supabaseClient
+    .from("app_dose_logs")
+    .insert({
+
+      medicine_id:
+        restoredMedicineId,
+
+      log_date:
+        log.log_date,
+
+      status:
+        log.status
+
+    });
+
+  }
+
+
+  clearInterval(undoInterval);
+
+  deletedMedicine=null;
+
+  $("undoBar")
+  .classList
+  .add("hidden");
+
+
+  await loadAll();
+
+  toast("Medicine restored successfully.");
+
+}
+
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+function renderDashboard(){
+
+  $("patientCount").textContent=
+    patients.length;
+
+  $("medicineCount").textContent=
+    medicines.length;
+
+  const low=
+    medicines.filter(
+      m=>
+        Number(m.stock||0)
+        <=
+        Number(m.low_stock ?? 5)
+    );
+
+  $("lowStockCount").textContent=
+    low.length;
+
+
+  const todayLogs=
+    doseLogs.filter(
+      x=>x.log_date===today()
+    );
+
+  $("todayLogCount").textContent=
+    todayLogs.length;
+
+
+  const activeMedicines=
+    medicines.filter(m=>
+      (!m.start_date || m.start_date<=today()) &&
+      (!m.end_date || m.end_date>=today())
+    );
+
+
+  $("todayMedicineList").innerHTML=
+    activeMedicines.length
+
+    ?
+
+    activeMedicines
+    .sort((a,b)=>
+      (a.time||"")
+      .localeCompare(b.time||"")
+    )
+    .map(m=>`
+
+      <div class="item">
+
+        <b>
+          ${escapeHTML(m.name)}
+        </b>
+
+        <p class="muted">
+
+          ${escapeHTML(
+            patientName(m.patient_id)
+          )}
+
+          •
+
+          ${escapeHTML(m.dose)}
+          ${escapeHTML(m.unit||"")}
+
+          •
+
+          ${escapeHTML(m.time||"")}
+
+        </p>
+
+        <div class="actions">
+
+          <button
+            class="btn success small"
+            onclick="logDose('${m.id}','taken')">
+            ✓ Taken
+          </button>
+
+          <button
+            class="btn danger small"
+            onclick="logDose('${m.id}','missed')">
+            ✕ Missed
+          </button>
+
+        </div>
+
+      </div>
+
+    `)
+    .join("")
+
+    :
+
+    `<p class="muted">
+      No medicines scheduled today.
+    </p>`;
+
+
+  const taken=
+    doseLogs.filter(
+      x=>x.status==="taken"
+    ).length;
+
+  const missed=
+    doseLogs.filter(
+      x=>x.status==="missed"
+    ).length;
+
+  const total=taken+missed;
+
+  const score=
+    total
+    ?Math.round(taken/total*100)
+    :0;
+
+
+  $("adherenceText").innerHTML=`
+
+    <h2>${score}%</h2>
+
+    <p class="muted">
+      ${taken} taken /
+      ${missed} missed
+    </p>
+
+  `;
+
+  $("adherenceBar").style.width=
+    score+"%";
+
+
+  $("dashboardAlerts").innerHTML=
+    low.length
+
+    ?
+
+    low.map(m=>`
+
+      <div class="item">
+
+        ⚠️
+
+        <b>${escapeHTML(m.name)}</b>
+
+        <br>
+
+        <span class="muted">
+
+          ${escapeHTML(
+            patientName(m.patient_id)
+          )}
+
+          —
+          Stock:
+          ${escapeHTML(m.stock ?? 0)}
+
+        </span>
+
+      </div>
+
+    `).join("")
+
+    :
+
+    `<div class="item success-box">
+      No low-stock alerts.
+    </div>`;
+
+
+  const recentVisits=
+    [...visits]
+    .sort(
+      (a,b)=>
+        (b.visit_date||"")
+        .localeCompare(
+          a.visit_date||""
+        )
+    )
+    .slice(0,5);
+
+
+  $("treatmentJourney").innerHTML=
+    recentVisits.length
+
+    ?
+
+    recentVisits.map(v=>`
+
+      <div class="item">
+
+        <b>
+          ${escapeHTML(v.visit_date)}
+        </b>
+
+        <br>
+
+        ${escapeHTML(
+          patientName(v.patient_id)
+        )}
+
+        <br>
+
+        <span class="muted">
+
+          ${escapeHTML(v.doctor||"")}
+
+          •
+
+          ${escapeHTML(v.reason||"")}
+
+        </span>
+
+      </div>
+
+    `).join("")
+
+    :
+
+    `<p class="muted">
+      Add doctor visits to build the treatment journey.
+    </p>`;
+
+}
+
+
+/* =========================================================
+   CALENDAR
+========================================================= */
+
+function renderCalendar(){
+
+  const date=
+    $("calendarDate").value ||
+    today();
+
+  $("calendarDate").value=date;
+
+
+  const list=
+    medicines.filter(m=>
+      (!m.start_date || m.start_date<=date) &&
+      (!m.end_date || m.end_date>=date)
+    );
+
+
+  $("calendarList").innerHTML=
+    list.length
+
+    ?
+
+    list.map(m=>`
+
+      <div class="item">
+
+        <b>${escapeHTML(m.name)}</b>
+
+        <br>
+
+        <span class="muted">
+
+          ${escapeHTML(
+            patientName(m.patient_id)
+          )}
+
+          •
+
+          ${escapeHTML(m.time||"—")}
+
+          •
+
+          ${escapeHTML(m.dose)}
+
+          ${escapeHTML(m.unit||"")}
+
+          •
+
+          ${escapeHTML(m.food||"")}
+
+        </span>
+
+      </div>
+
+    `).join("")
+
+    :
+
+    `<p class="muted">
+      No medicine scheduled for this date.
+    </p>`;
+
+}
+
+
+/* =========================================================
+   DOCTOR VISITS
+========================================================= */
+
+function openVisitModal(id=""){
+
+  const visit=
+    visits.find(x=>x.id===id) || {};
+
+
+  const options=
+    patients.map(p=>`
+
+      <option
+        value="${p.id}"
+        ${visit.patient_id===p.id?"selected":""}>
+
+        ${escapeHTML(p.name)}
+
+      </option>
+
+    `).join("");
+
+
+  openModal(
+
+    id
+    ?"✏️ Edit Doctor Visit"
+    :"🏥 Add Doctor Visit",
+
+    `
+
+    <div class="form-grid">
+
+      <div class="field">
+
+        <label>Patient</label>
+
+        <select id="vPatient">
+
+          <option value="">
+            Select patient
+          </option>
+
+          ${options}
+
+        </select>
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Date</label>
+
+        <input
+          id="vDate"
+          type="date"
+          value="${escapeHTML(
+            visit.visit_date||today()
+          )}">
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Doctor</label>
+
+        <input
+          id="vDoctor"
+          value="${escapeHTML(
+            visit.doctor
+          )}">
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Reason</label>
+
+        <input
+          id="vReason"
+          value="${escapeHTML(
+            visit.reason
+          )}">
+
+      </div>
+
+
+      <div class="field full">
+
+        <label>Notes</label>
+
+        <textarea id="vNotes">
+${escapeHTML(visit.notes)}
+        </textarea>
+
+      </div>
+
+    </div>
+
+    <br>
+
+    <button
+      class="btn"
+      onclick="saveVisit('${id}')">
+
+      Save
+
+    </button>
+
+    `
+  );
+
+}
+
+
+async function saveVisit(id){
+
+  const row={
+
+    patient_id:$("vPatient").value || null,
+
+    visit_date:$("vDate").value,
+
+    doctor:$("vDoctor").value.trim(),
+
+    reason:$("vReason").value.trim(),
+
+    notes:$("vNotes").value.trim()
+
+  };
+
+
+  if(!row.patient_id || !row.visit_date){
+
+    toast("Patient and date are required.");
+
+    return;
+  }
+
+
+  const result=
+    id
+
+    ?
+
+    await supabaseClient
+    .from("app_visits")
+    .update(row)
+    .eq("id",id)
+
+    :
+
+    await supabaseClient
+    .from("app_visits")
+    .insert(row);
+
+
+  if(result.error){
+
+    toast(result.error.message);
+
+    return;
+  }
+
+
+  closeModal();
+
+  await loadAll();
+
+  toast("Doctor visit saved.");
+
+}
+
+
+function renderVisits(){
+
+  const list=
+    [...visits].sort(
+      (a,b)=>
+        (b.visit_date||"")
+        .localeCompare(
+          a.visit_date||""
+        )
+    );
+
+
+  $("visitList").innerHTML=
+    list.length
+
+    ?
+
+    list.map(v=>`
+
+      <div class="item">
+
+        <b>
+          ${escapeHTML(v.visit_date)}
+        </b>
+
+        •
+
+        ${escapeHTML(
+          patientName(v.patient_id)
+        )}
+
+        <p class="muted">
+
+          Dr.
+          ${escapeHTML(v.doctor||"—")}
+
+          •
+
+          ${escapeHTML(v.reason||"")}
+
+        </p>
+
+        <p>
+          ${escapeHTML(v.notes||"")}
+        </p>
+
+        <div class="actions">
+
+          <button
+            class="btn secondary small"
+            onclick="openVisitModal('${v.id}')">
+            Edit
+          </button>
+
+          <button
+            class="btn danger small"
+            onclick="deleteRow('app_visits','${v.id}')">
+            Delete
+          </button>
+
+        </div>
+
+      </div>
+
+    `).join("")
+
+    :
+
+    `<p class="muted">
+      No doctor visits.
+    </p>`;
+
+}
+
+
+/* =========================================================
+   REFILLS
+========================================================= */
+
+function renderRefills(){
+
+  $("refillList").innerHTML=
+
+    medicines.length
+
+    ?
+
+    medicines.map(m=>{
+
+      const low=
+        Number(m.stock||0)
+        <=
+        Number(m.low_stock ?? 5);
+
+      return `
+
+      <div class="item">
+
+        <div class="actions"
+             style="justify-content:space-between">
+
+          <b>
+            ${escapeHTML(m.name)}
+          </b>
+
+          <span class="badge
+            ${low?"danger":"success"}">
+
+            ${low
+              ?"Refill Needed"
+              :"Stock OK"}
+
+          </span>
+
+        </div>
+
+        <p class="muted">
+
+          Patient:
+          ${escapeHTML(
+            patientName(m.patient_id)
+          )}
+
+          <br>
+
+          Current stock:
+          ${escapeHTML(m.stock ?? 0)}
+
+          <br>
+
+          Low threshold:
+          ${escapeHTML(m.low_stock ?? 5)}
+
+        </p>
+
+      </div>
+
+      `;
+
+    }).join("")
+
+    :
+
+    `<p class="muted">
+      No medicines.
+    </p>`;
+
+}
+
+
+/* =========================================================
+   GENERIC DELETE
+========================================================= */
+
+async function deleteRow(table,id){
+
+  if(!confirm("Delete this record?")) return;
+
+
+  const result=
+    await supabaseClient
+    .from(table)
+    .delete()
+    .eq("id",id);
+
+
+  if(result.error){
+
+    toast(result.error.message);
+
+    return;
+  }
+
+
+  await loadAll();
+
+  toast("Deleted.");
+
+}
+
+
+/* =========================================================
+   EMERGENCY
+========================================================= */
+
+function openEmergencyModal(){
+
+  const emergency=
+    emergencies[0] || {};
+
+
+  openModal(
+
+    "🆘 Emergency Health Card",
+
+    `
+
+    <div class="form-grid">
+
+      <div class="field">
+
+        <label>Name</label>
+
+        <input
+          id="eName"
+          value="${escapeHTML(
+            emergency.name
+          )}">
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Emergency Contact</label>
+
+        <input
+          id="eContact"
+          value="${escapeHTML(
+            emergency.contact
+          )}">
+
+      </div>
+
+
+      <div class="field full">
+
+        <label>Allergies</label>
+
+        <textarea id="eAllergies">
+${escapeHTML(emergency.allergies)}
+        </textarea>
+
+      </div>
+
+
+      <div class="field full">
+
+        <label>Important Information</label>
+
+        <textarea id="eInfo">
+${escapeHTML(emergency.info)}
+        </textarea>
+
+      </div>
+
+    </div>
+
+    <br>
+
+    <button
+      class="btn"
+      onclick="saveEmergency('${emergency.id||""}')">
+
+      Save Emergency Card
+
+    </button>
+
+    `
+  );
+
+}
+
+
+async function saveEmergency(id){
+
+  const row={
+
+    name:$("eName").value.trim(),
+
+    contact:$("eContact").value.trim(),
+
+    allergies:$("eAllergies").value.trim(),
+
+    info:$("eInfo").value.trim()
+
+  };
+
+
+  let result;
+
+
+  if(id){
+
+    result=
+      await supabaseClient
+      .from("app_emergencies")
+      .update(row)
+      .eq("id",id);
+
+  }else{
+
+    result=
+      await supabaseClient
+      .from("app_emergencies")
+      .insert(row);
+
+  }
+
+
+  if(result.error){
+
+    toast(result.error.message);
+
+    return;
+  }
+
+
+  closeModal();
+
+  await loadAll();
+
+  toast("Emergency card saved.");
+
+}
+
+
+function renderEmergency(){
+
+  const emergency=
+    emergencies[0];
+
+
+  if(!emergency){
+
+    $("emergencyView").innerHTML=
+      `<p class="muted">
+        Emergency card not created yet.
+      </p>`;
+
+    $("qrContainer").innerHTML="";
+
+    return;
+  }
+
+
+  $("emergencyView").innerHTML=`
+
+    <div class="item">
+
+      <h3>
+        ${escapeHTML(
+          emergency.name || ""
+        )}
+      </h3>
+
+      <b>Contact:</b>
+      ${escapeHTML(
+        emergency.contact || "—"
+      )}
+
+      <br><br>
+
+      <b>Allergies:</b>
+      ${escapeHTML(
+        emergency.allergies ||
+        "None recorded"
+      )}
+
+      <br><br>
+
+      <b>Information:</b>
+      ${escapeHTML(
+        emergency.info || "—"
+      )}
+
+    </div>
+
+  `;
+
+
+  $("qrContainer").innerHTML=`
+
+    <br>
+
+    <button
+      class="btn secondary"
+      onclick="generateEmergencyQR()">
+
+      Generate Emergency QR
+
+    </button>
+
+    <div id="qrCode"></div>
+
+  `;
+
+}
+
+
+function generateEmergencyQR(){
+
+  const e=emergencies[0];
+
+  if(!e) return;
+
+
+  const data=JSON.stringify({
+
+    name:e.name,
+    contact:e.contact,
+    allergies:e.allergies,
+    info:e.info
+
+  });
+
+
+  const encoded=
+    encodeURIComponent(data);
+
+
+  $("qrCode").innerHTML=`
+
+    <div class="item">
+
+      <p class="muted">
+        Keep this QR private.
+      </p>
+
+      <img
+        width="220"
+        height="220"
+        alt="Emergency QR"
+        src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encoded}">
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================================================
+   DOCUMENTS
+========================================================= */
+
+function openDocumentModal(){
+
+  openModal(
+
+    "📄 Add Medical Document",
+
+    `
+
+    <div class="form-grid">
+
+      <div class="field">
+
+        <label>Title</label>
+
+        <input id="dTitle">
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Date</label>
+
+        <input
+          id="dDate"
+          type="date"
+          value="${today()}">
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Patient</label>
+
+        <select id="dPatient">
+
+          <option value="">
+            None
+          </option>
+
+          ${patients.map(p=>`
+
+            <option value="${p.id}">
+              ${escapeHTML(p.name)}
+            </option>
+
+          `).join("")}
+
+        </select>
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Private Document URL</label>
+
+        <input
+          id="dUrl"
+          type="url">
+
+      </div>
+
+
+      <div class="field full">
+
+        <label>Notes</label>
+
+        <textarea id="dNotes"></textarea>
+
+      </div>
+
+    </div>
+
+    <br>
+
+    <button
+      class="btn"
+      onclick="saveDocument()">
+
+      Save Document
+
+    </button>
+
+    `
+  );
+
+}
+
+
+async function saveDocument(){
+
+  const row={
+
+    title:$("dTitle").value.trim(),
+
+    document_date:$("dDate").value || null,
+
+    patient_id:$("dPatient").value || null,
+
+    url:$("dUrl").value.trim(),
+
+    notes:$("dNotes").value.trim()
+
+  };
+
+
+  if(!row.title){
+
+    toast("Document title required.");
+
+    return;
+  }
+
+
+  const result=
+    await supabaseClient
+    .from("app_documents")
+    .insert(row);
+
+
+  if(result.error){
+
+    toast(result.error.message);
+
+    return;
+  }
+
+
+  closeModal();
+
+  await loadAll();
+
+  toast("Document saved.");
+
+}
+
+
+function renderDocuments(){
+
+  $("documentList").innerHTML=
+
+    documents.length
+
+    ?
+
+    documents.map(d=>`
+
+      <div class="item">
+
+        <b>
+          ${escapeHTML(d.title)}
+        </b>
+
+        <p class="muted">
+
+          ${escapeHTML(
+            d.document_date || ""
+          )}
+
+          •
+
+          ${escapeHTML(
+            patientName(d.patient_id)
+          )}
+
+        </p>
+
+        ${
+          d.url
+          ?
+
+          `<a
+            href="${escapeHTML(d.url)}"
+            target="_blank"
+            rel="noopener">
+            Open document
+          </a>`
+
+          :""
+        }
+
+        <p>
+          ${escapeHTML(d.notes||"")}
+        </p>
+
+        <button
+          class="btn danger small"
+          onclick="deleteRow('app_documents','${d.id}')">
+
+          Delete
+
+        </button>
+
+      </div>
+
+    `).join("")
+
+    :
+
+    `<p class="muted">
+      No documents.
+    </p>`;
+
+}
+
+
+/* =========================================================
+   MEDICINE FINDER
+========================================================= */
+
+const medicineCatalog=[
+
+  {
+    generic:"Paracetamol",
+    brands:"Calpol, Crocin, Panadol (examples)",
+    related:"Acetaminophen is the same generic name in many regions.",
+    note:"Pain/fever reference only."
+  },
+
+  {
+    generic:"Amoxicillin",
+    brands:"Amoxil (example)",
+    related:"Other penicillin-class antibiotics exist.",
+    note:"Antibiotic. Use only as prescribed."
+  },
+
+  {
+    generic:"Cetirizine",
+    brands:"Zyrtec (example)",
+    related:"Other antihistamines exist.",
+    note:"Allergy-medicine reference only."
+  },
+
+  {
+    generic:"Omeprazole",
+    brands:"Prilosec (example)",
+    related:"Other proton-pump inhibitors exist.",
+    note:"Acid-reducing medicine reference only."
+  },
+
+  {
+    generic:"Metformin",
+    brands:"Glucophage (example)",
+    related:"Other glucose-lowering medicines exist.",
+    note:"Diabetes medicine reference only."
+  },
+
+  {
+    generic:"Ibuprofen",
+    brands:"Advil, Motrin (examples)",
+    related:"Other NSAIDs exist.",
+    note:"Pain/inflammation reference only."
+  }
+
+];
+
+
+function renderFinder(){
+
+  const query=
+    ($("finderSearch")?.value||"")
+    .toLowerCase();
+
+
+  const result=
+    medicineCatalog.filter(m=>
+      (
+        m.generic+" "+
+        m.brands+" "+
+        m.related
+      )
+      .toLowerCase()
+      .includes(query)
+    );
+
+
+  $("finderList").innerHTML=
+    result.map(m=>`
+
+      <div class="item">
+
+        <h3>
+          ${escapeHTML(m.generic)}
+        </h3>
+
+        <p>
+          <b>Example brands:</b>
+          ${escapeHTML(m.brands)}
+        </p>
+
+        <p>
+          <b>Related/reference:</b>
+          ${escapeHTML(m.related)}
+        </p>
+
+        <p class="muted">
+          ${escapeHTML(m.note)}
+        </p>
+
+        <button
+          class="btn secondary small"
+          onclick="useMedicineName(${JSON.stringify(m.generic)})">
+
+          Use Name in Medicine Form
+
+        </button>
+
+      </div>
+
+    `).join("");
+
+}
+
+
+function useMedicineName(name){
+
+  openMedicineModal();
+
+  $("mName").value=name;
+
+  toast(
+    "Medicine name added. Enter the prescribed dose."
+  );
+
+}
+
+
+/* =========================================================
+   REPORT
+========================================================= */
+
+function renderReport(){
+
+  if(!$("reportContent")) return;
+
+
+  const month=
+    $("reportMonth").value ||
+    today().slice(0,7);
+
+
+  $("reportMonth").value=month;
+
+
+  const patientId=
+    $("reportPatient").value || "";
+
+
+  const selectedMedicines=
+    medicines.filter(m=>
+      (
+        !patientId ||
+        m.patient_id===patientId
+      )
+      &&
+      (
+        !m.start_date ||
+        m.start_date.slice(0,7)<=month
+      )
+      &&
+      (
+        !m.end_date ||
+        m.end_date.slice(0,7)>=month
+      )
+    );
+
+
+  const selectedLogs=
+    doseLogs.filter(log=>
+      log.log_date?.slice(0,7)===month
+      &&
+      selectedMedicines.some(
+        m=>m.id===log.medicine_id
+      )
+    );
+
+
+  const taken=
+    selectedLogs.filter(
+      x=>x.status==="taken"
+    ).length;
+
+
+  const missed=
+    selectedLogs.filter(
+      x=>x.status==="missed"
+    ).length;
+
+
+  const total=taken+missed;
+
+
+  const rate=
+    total
+    ?Math.round(taken/total*100)
+    :0;
+
+
+  $("reportContent").innerHTML=`
+
+    <div class="stats">
+
+      <div class="stat">
+        <div class="muted">
+          Medicines
+        </div>
+        <div class="stat-number">
+          ${selectedMedicines.length}
+        </div>
+      </div>
+
+      <div class="stat">
+        <div class="muted">
+          Taken
+        </div>
+        <div class="stat-number">
+          ${taken}
+        </div>
+      </div>
+
+      <div class="stat">
+        <div class="muted">
+          Missed
+        </div>
+        <div class="stat-number">
+          ${missed}
+        </div>
+      </div>
+
+      <div class="stat">
+        <div class="muted">
+          Recorded Rate
+        </div>
+        <div class="stat-number">
+          ${rate}%
+        </div>
+      </div>
+
+    </div>
+
+
+    <br>
+
+    <div class="card">
+
+      <h3>
+        Medicine Summary
+      </h3>
+
+      ${
+        selectedMedicines.length
+
+        ?
+
+        selectedMedicines.map(m=>`
+
+          <p>
+
+            <b>
+              ${escapeHTML(m.name)}
+            </b>
+
+            —
+
+            ${escapeHTML(
+              patientName(m.patient_id)
+            )}
+
+            —
+
+            ${escapeHTML(m.dose)}
+            ${escapeHTML(m.unit||"")}
+
+          </p>
+
+        `).join("")
+
+        :
+
+        `<p class="muted">
+          No records for this month.
+        </p>`
+
+      }
+
+    </div>
+
+  `;
+
+}
+
+
+function printReport(){
+
+  const popup=
+    window.open(
+      "",
+      "_blank"
+    );
+
+
+  popup.document.write(`
+
+    <html>
+
+    <head>
+
+      <title>
+        Smart Medicine Report
+      </title>
+
+      <style>
+
+        body{
+          font-family:Arial;
+          padding:30px;
+        }
+
+      </style>
+
+    </head>
+
+    <body>
+
+      <h1>
+        Smart Medicine Reminder+
+      </h1>
+
+      ${$("reportContent").innerHTML}
+
+    </body>
+
+    </html>
+
+  `);
+
+
+  popup.document.close();
+
+  popup.print();
+
+}
+
+
+/* =========================================================
+   BACKUP
+========================================================= */
+
+function downloadFile(
+  filename,
+  content,
+  type
+){
+
+  const blob=
+    new Blob(
+      [content],
+      {type}
+    );
+
+
+  const url=
+    URL.createObjectURL(blob);
+
+
+  const a=
+    document.createElement("a");
+
+
+  a.href=url;
+
+  a.download=filename;
+
+  a.click();
+
+  URL.revokeObjectURL(url);
+
+}
+
+
+function exportBackup(){
+
+  const backup={
+
+    exportedAt:
+      new Date().toISOString(),
+
+    patients,
+
+    medicines,
+
+    visits,
+
+    emergencies,
+
+    documents,
+
+    doseLogs
+
+  };
+
+
+  downloadFile(
+
+    "smart-medicine-backup.json",
+
+    JSON.stringify(
+      backup,
+      null,
+      2
+    ),
+
+    "application/json"
+
+  );
+
+
+  toast("Backup downloaded.");
+
+}
+
+
+function exportCSV(){
+
+  const header=
+    "Medicine,Patient,Dose,Unit,Time,Start Date,End Date,Stock,Low Stock\n";
+
+
+  const rows=
+    medicines.map(m=>{
+
+      const values=[
+
+        m.name,
+
+        patientName(m.patient_id),
+
+        m.dose,
+
+        m.unit,
+
+        m.time,
+
+        m.start_date,
+
+        m.end_date,
+
+        m.stock,
+
+        m.low_stock
+
+      ];
+
+
+      return values.map(v=>
+        `"${String(v??"")
+        .replace(/"/g,'""')}"`
+      ).join(",");
+
+    }).join("\n");
+
+
+  downloadFile(
+    "medicines.csv",
+    header+rows,
+    "text/csv"
+  );
+
+
+  toast("CSV downloaded.");
+
+}
+
+
+async function restoreBackup(event){
+
+  const file=
+    event.target.files[0];
+
+  if(!file) return;
+
+
+  try{
+
+    const data=
+      JSON.parse(
+        await file.text()
+      );
+
+
+    if(!confirm(
+      "Import this backup? Existing records will remain."
+    )) return;
+
+
+    for(
+      const p
+      of data.patients || []
+    ){
+
+      await supabaseClient
+      .from("app_patients")
+      .insert({
+
+        name:p.name,
+        age:p.age,
+        phone:p.phone,
+        purpose:p.purpose,
+        notes:p.notes
+
+      });
+
+    }
+
+
+    /*
+      Medicines are restored only when the referenced
+      patient already exists. This prevents invalid
+      foreign-key references.
+    */
+
+    for(
+      const m
+      of data.medicines || []
+    ){
+
+      const matchingPatient=
+        patients.find(
+          p=>p.id===m.patient_id
+        );
+
+
+      if(!matchingPatient) continue;
+
+
+      await supabaseClient
+      .from("app_medicines")
+      .insert({
+
+        name:m.name,
+        patient_id:m.patient_id,
+        dose:m.dose,
+        unit:m.unit,
+        type:m.type,
+        purpose:m.purpose,
+        time:m.time,
+        start_date:m.start_date,
+        end_date:m.end_date,
+        food:m.food,
+        stock:m.stock,
+        low_stock:m.low_stock,
+        notes:m.notes
+
+      });
+
+    }
+
+
+    await loadAll();
+
+    toast(
+      "Backup imported where records were valid."
+    );
+
+
+  }catch(error){
+
+    console.error(error);
+
+    toast(
+      "Invalid backup file."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   CAREGIVER
+========================================================= */
+
+async function renderCaregiver(){
+
+  if(!currentUser) return;
+
+
+  $("caregiverInfo").innerHTML=`
+
+    <div class="item">
+
+      <b>
+        ${escapeHTML(
+          currentUser.email
+        )}
+      </b>
+
+      <br><br>
+
+      Role:
+      <b>
+        ${escapeHTML(
+          currentProfile?.role || ""
+        )}
+      </b>
+
+      <br>
+
+      Status:
+      <b>
+        ${escapeHTML(
+          currentProfile?.status || ""
+        )}
+      </b>
+
+    </div>
+
+  `;
+
+
+  if(
+    currentProfile?.role!=="owner"
+  ){
+
+    $("pendingCaregivers").innerHTML=
+      `<p class="muted">
+        Only the owner can approve caregivers.
+      </p>`;
+
+    return;
+  }
+
+
+  const result=
+    await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("status","pending")
+    .order("created_at");
+
+
+  if(result.error){
+
+    $("pendingCaregivers").textContent=
+      result.error.message;
+
+    return;
+  }
+
+
+  $("pendingCaregivers").innerHTML=
+    result.data.length
+
+    ?
+
+    result.data.map(p=>`
+
+      <div class="item">
+
+        <b>
+          ${escapeHTML(
+            p.email || p.id
+          )}
+        </b>
+
+        <br><br>
+
+        <div class="actions">
+
+          <button
+            class="btn success small"
+            onclick="approveCaregiver('${p.id}')">
+
+            Approve
+
+          </button>
+
+          <button
+            class="btn danger small"
+            onclick="denyCaregiver('${p.id}')">
+
+            Deny
+
+          </button>
+
+        </div>
+
+      </div>
+
+    `).join("")
+
+    :
+
+    `<p class="muted">
+      No pending caregivers.
+    </p>`;
+
+}
+
+
+async function approveCaregiver(id){
+
+  const result=
+    await supabaseClient
+    .from("profiles")
+    .update({
+      status:"approved",
+      role:"caregiver"
+    })
+    .eq("id",id);
+
+
+  if(result.error){
+
+    toast(result.error.message);
+
+    return;
+  }
+
+
+  await renderCaregiver();
+
+  toast("Caregiver approved.");
+
+}
+
+
+async function denyCaregiver(id){
+
+  const result=
+    await supabaseClient
+    .from("profiles")
+    .update({
+      status:"denied"
+    })
+    .eq("id",id);
+
+
+  if(result.error){
+
+    toast(result.error.message);
+
+    return;
+  }
+
+
+  await renderCaregiver();
+
+  toast("Caregiver denied.");
+
+}
+
+
+/* =========================================================
+   LANGUAGE
+========================================================= */
+
+const translations={
+
+  en:{
+    login:
+      "Login"
+  },
+
+  ta:{
+    login:
+      "உள்நுழை"
+  }
+
+};
+
+
+function toggleLanguage(){
+
+  language=
+    language==="en"
+    ?"ta"
+    :"en";
+
+
+  localStorage.setItem(
+    "smr_language",
+    language
+  );
+
+
+  applyLanguage();
+
+}
+
+
+function applyLanguage(){
+
+  /*
+    Core data values are not translated.
+    UI language can be extended safely without
+    changing medicine/patient records.
+  */
+
+  $("authButton").textContent=
+    authMode==="login"
+    ?(
+      language==="ta"
+      ?"உள்நுழை"
+      :"Login"
+    )
+    :(
+      language==="ta"
+      ?"Caregiver கணக்கு உருவாக்கு"
+      :"Create Caregiver Account"
+    );
+
+}
+
+
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
+
+async function enableNotifications(){
+
+  if(!("Notification" in window)){
+
+    toast(
+      "This browser does not support notifications."
+    );
+
+    return;
+  }
+
+
+  const permission=
+    await Notification.requestPermission();
+
+
+  if(permission==="granted"){
+
+    new Notification(
+      "💊 Smart Medicine Reminder+",
+      {
+        body:
+          "Notifications enabled."
+      }
+    );
+
+
+    toast(
+      "Notification permission enabled."
+    );
+
+  }else{
+
+    toast(
+      "Notification permission was not granted."
+    );
+
+  }
+
+}
+
+
+/*
+  This is a foreground reminder checker.
+  It does NOT replace Web Push for a fully closed app.
+*/
+
+setInterval(()=>{
+
+  if(
+    document.visibilityState!=="visible"
+  ) return;
+
+
+  if(
+    !("Notification" in window) ||
+    Notification.permission!=="granted"
+  ) return;
+
+
+  const now=
+    new Date();
+
+
+  const hh=
+    String(now.getHours())
+    .padStart(2,"0");
+
+  const mm=
+    String(now.getMinutes())
+    .padStart(2,"0");
+
+
+  const current=
+    hh+":"+mm;
+
+
+  const key=
+    "smr_reminder_"+today()+"_"+current;
+
+
+  if(
+    localStorage.getItem(key)
+  ) return;
+
+
+  const due=
+    medicines.filter(m=>
+      m.time===current &&
+      (!m.start_date ||
+       m.start_date<=today()) &&
+      (!m.end_date ||
+       m.end_date>=today())
+    );
+
+
+  if(!due.length) return;
+
+
+  due.forEach(m=>{
+
+    new Notification(
+      "💊 Medicine Reminder",
+      {
+        body:
+          `${m.name} — ${m.dose} ${m.unit||""}`
+      }
+    );
+
+  });
+
+
+  localStorage.setItem(
+    key,
+    "1"
+  );
+
+
+},30000);
+
+
+/* =========================================================
+   PWA
+========================================================= */
+
+window.addEventListener(
+  "beforeinstallprompt",
+  event=>{
+
+    event.preventDefault();
+
+    deferredPrompt=event;
+
+    $("installButton")
+      .classList
+      .remove("hidden");
+
+  }
+);
+
+
+async function installPWA(){
+
+  if(!deferredPrompt){
+
+    toast(
+      "Use browser menu → Install App / Add to Home Screen."
+    );
+
+    return;
+  }
+
+
+  deferredPrompt.prompt();
+
+  await deferredPrompt.userChoice;
+
+  deferredPrompt=null;
+
+  $("installButton")
+    .classList
+    .add("hidden");
+
+}
+
+
+function registerServiceWorker(){
+
+  if(
+    "serviceWorker"
+    in navigator
+  ){
+
+    navigator.serviceWorker
+    .register("./sw.js")
+    .then(()=>{
+      console.log(
+        "Service worker registered."
+      );
+    })
+    .catch(console.error);
+
+  }
+
+}
+
+
+/* =========================================================
+   STARTUP
+========================================================= */
+
+$("cloudUrl").value=
+  localStorage.getItem(
+    "smr_url"
+  ) || "";
+
+$("cloudKey").value=
+  localStorage.getItem(
+    "smr_key"
+  ) || "";
+
+
+$("calendarDate").value=today();
+if($("historyDate"))$("historyDate").value=today();
+
+$("reportMonth").value=
+  today().slice(0,7);
+
+
+(async function(){
+
+  if(!initSupabase()) return;
+
+
+  const session=
+    await supabaseClient
+    .auth
+    .getSession();
+
+
+  if(
+    session.data.session
+  ){
+
+    await startApplication(
+      session.data.session.user
+    );
+
+  }
+
+})();
+
+</script>
+
+</body>
+</html>
