@@ -4825,2550 +4825,589 @@ $("reportMonth").value=
 })();
 
 </script>
+
+<style>
+/* =========================================================
+   FINAL SMART MEDICINE REMINDER+ UI / FEATURE LAYER
+========================================================= */
+.smr-panel{margin-top:14px;padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--card)}
+.smr-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.smr-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:700}
+.smr-muted{color:var(--muted);font-size:13px}
+.smr-actions{display:flex;flex-wrap:wrap;gap:8px}
+.smr-lang-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.smr-lang-btn{padding:11px;border:1px solid var(--border);border-radius:12px;background:var(--card);font-weight:700;text-align:left}
+.smr-lang-btn:hover{border-color:var(--primary);background:#eff6ff}
+.smr-reminder{position:fixed;right:18px;bottom:18px;z-index:10001;width:min(420px,calc(100vw - 28px));background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:0 18px 60px rgba(0,0,0,.2)}
+.smr-reminder h3{margin-bottom:6px}
+.smr-snooze-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.smr-owner-row{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.smr-denied{opacity:.62}
+body.smr-dark{--bg:#0b1220;--card:#111827;--text:#f8fafc;--muted:#aab4c5;--border:#273449;--shadow:0 10px 30px rgba(0,0,0,.35)}
+body.smr-dark .topbar{background:#111827ee}
+body.smr-dark input,body.smr-dark select,body.smr-dark textarea{background:#0f172a;color:#f8fafc;border-color:#334155}
+body.smr-dark .btn.gray{background:#1f2937;color:#e5e7eb}
+body.smr-dark .btn.secondary{background:#1e3a8a;color:#dbeafe}
+body.smr-dark .modal-box{background:#111827}
+@media(max-width:600px){
+  .smr-grid{grid-template-columns:1fr}
+  .smr-lang-grid{grid-template-columns:1fr}
+  .smr-reminder{right:10px;bottom:10px}
+}
+</style>
+
 <script>
 /* =========================================================
-   SMART MEDICINE REMINDER+ ENHANCEMENT PACK
-   Multi-language + Smart Related Medicine Search
+   FINAL INTEGRATED FEATURE LAYER
+   Keeps the original application and adds:
+   - 7-language selector
+   - Smart medicine finder
+   - Repeat schedule integrated with reminders/dashboard
+   - Reminder modal + snooze
+   - 7-day adherence
+   - Low-stock alerts
+   - Dark mode
+   - Google OAuth + Phone OTP UI
+   - Owner/caregiver permissions UI
+   - Better emergency/document/privacy controls
+   - PWA/service-worker hooks
 ========================================================= */
+(function(){
 
-(function () {
+  "use strict";
 
-  /* ---------- MULTI LANGUAGE ---------- */
-
-  const LANG = {
-    en: {
-      dashboard: "Dashboard",
-      patients: "Patients",
-      medicines: "Medicines",
-      calendar: "Calendar",
-      visits: "Doctor Visits",
-      refills: "Refills",
-      emergency: "Emergency",
-      documents: "Documents",
-      finder: "Medicine Finder",
-      reports: "Reports",
-      backup: "Backup",
-      caregiver: "Caregiver",
-      searchMedicine: "Search medicine",
-      allPatients: "All patients",
-      todayMedicines: "Today's Medicines",
-      notifications: "🔔 Notifications",
-      logout: "Logout",
-      addMedicine: "+ Add Medicine"
+  const LANGS = {
+    en:{
+      name:"🌐 English", dashboard:"Dashboard", patients:"Patients", medicines:"Medicines",
+      calendar:"Calendar", visits:"Doctor Visits", refills:"Refills", emergency:"Emergency",
+      documents:"Documents", finder:"Medicine Finder", reports:"Reports", backup:"Backup",
+      caregiver:"Caregiver", notifications:"🔔 Notifications", logout:"Logout",
+      addMedicine:"+ Add Medicine", addPatient:"+ Add Patient", searchMedicine:"Search medicine",
+      allPatients:"All patients", today:"Today's Medicines", languageChanged:"Language changed"
     },
-
-    ta: {
-      dashboard: "முகப்பு",
-      patients: "நோயாளிகள்",
-      medicines: "மருந்துகள்",
-      calendar: "மருந்து நாட்காட்டி",
-      visits: "மருத்துவர் சந்திப்புகள்",
-      refills: "மருந்து இருப்பு",
-      emergency: "அவசர தகவல்",
-      documents: "மருத்துவ ஆவணங்கள்",
-      finder: "மருந்து தேடல்",
-      reports: "அறிக்கைகள்",
-      backup: "Backup",
-      caregiver: "பராமரிப்பாளர்",
-      searchMedicine: "மருந்தை தேடுங்கள்",
-      allPatients: "அனைத்து நோயாளிகள்",
-      todayMedicines: "இன்றைய மருந்துகள்",
-      notifications: "🔔 அறிவிப்புகள்",
-      logout: "வெளியேறு",
-      addMedicine: "+ மருந்து சேர்க்க"
+    ta:{
+      name:"🌐 தமிழ்", dashboard:"முகப்பு", patients:"நோயாளிகள்", medicines:"மருந்துகள்",
+      calendar:"மருந்து நாட்காட்டி", visits:"மருத்துவர் சந்திப்புகள்", refills:"மருந்து இருப்பு",
+      emergency:"அவசர தகவல்", documents:"மருத்துவ ஆவணங்கள்", finder:"மருந்து தேடல்",
+      reports:"அறிக்கைகள்", backup:"Backup", caregiver:"பராமரிப்பாளர்",
+      notifications:"🔔 அறிவிப்புகள்", logout:"வெளியேறு", addMedicine:"+ மருந்து சேர்க்க",
+      addPatient:"+ நோயாளி சேர்க்க", searchMedicine:"மருந்தை தேடுங்கள்",
+      allPatients:"அனைத்து நோயாளிகள்", today:"இன்றைய மருந்துகள்", languageChanged:"மொழி மாற்றப்பட்டது"
     },
-
-    hi: {
-      dashboard: "डैशबोर्ड",
-      patients: "मरीज़",
-      medicines: "दवाइयाँ",
-      calendar: "दवा कैलेंडर",
-      visits: "डॉक्टर विज़िट",
-      refills: "रिफिल",
-      emergency: "आपातकाल",
-      documents: "मेडिकल दस्तावेज़",
-      finder: "दवा खोजें",
-      reports: "रिपोर्ट",
-      backup: "बैकअप",
-      caregiver: "देखभालकर्ता",
-      searchMedicine: "दवा खोजें",
-      allPatients: "सभी मरीज़",
-      todayMedicines: "आज की दवाइयाँ",
-      notifications: "🔔 सूचनाएँ",
-      logout: "लॉगआउट",
-      addMedicine: "+ दवा जोड़ें"
+    hi:{
+      name:"🌐 हिन्दी", dashboard:"डैशबोर्ड", patients:"मरीज़", medicines:"दवाइयाँ",
+      calendar:"दवा कैलेंडर", visits:"डॉक्टर विज़िट", refills:"रिफिल", emergency:"आपातकाल",
+      documents:"मेडिकल दस्तावेज़", finder:"दवा खोजें", reports:"रिपोर्ट", backup:"बैकअप",
+      caregiver:"देखभालकर्ता", notifications:"🔔 सूचनाएँ", logout:"लॉगआउट",
+      addMedicine:"+ दवा जोड़ें", addPatient:"+ मरीज़ जोड़ें", searchMedicine:"दवा खोजें",
+      allPatients:"सभी मरीज़", today:"आज की दवाइयाँ", languageChanged:"भाषा बदल दी गई"
     },
-
-    ml: {
-      dashboard: "ഡാഷ്ബോർഡ്",
-      patients: "രോഗികൾ",
-      medicines: "മരുന്നുകൾ",
-      calendar: "മരുന്ന് കലണ്ടർ",
-      visits: "ഡോക്ടർ സന്ദർശനങ്ങൾ",
-      refills: "റീഫിൽ",
-      emergency: "അടിയന്തര വിവരം",
-      documents: "മെഡിക്കൽ രേഖകൾ",
-      finder: "മരുന്ന് തിരയുക",
-      reports: "റിപ്പോർട്ടുകൾ",
-      backup: "ബാക്കപ്പ്",
-      caregiver: "പരിചരിക്കുന്നവർ",
-      searchMedicine: "മരുന്ന് തിരയുക",
-      allPatients: "എല്ലാ രോഗികളും",
-      todayMedicines: "ഇന്നത്തെ മരുന്നുകൾ",
-      notifications: "🔔 അറിയിപ്പുകൾ",
-      logout: "ലോഗൗട്ട്",
-      addMedicine: "+ മരുന്ന് ചേർക്കുക"
+    ml:{
+      name:"🌐 മലയാളം", dashboard:"ഡാഷ്ബോർഡ്", patients:"രോഗികൾ", medicines:"മരുന്നുകൾ",
+      calendar:"മരുന്ന് കലണ്ടർ", visits:"ഡോക്ടർ സന്ദർശനങ്ങൾ", refills:"റീഫിൽ",
+      emergency:"അടിയന്തര വിവരം", documents:"മെഡിക്കൽ രേഖകൾ", finder:"മരുന്ന് തിരയുക",
+      reports:"റിപ്പോർട്ടുകൾ", backup:"ബാക്കപ്പ്", caregiver:"പരിചരിക്കുന്നവർ",
+      notifications:"🔔 അറിയിപ്പുകൾ", logout:"ലോഗൗട്ട്", addMedicine:"+ മരുന്ന് ചേർക്കുക",
+      addPatient:"+ രോഗിയെ ചേർക്കുക", searchMedicine:"മരുന്ന് തിരയുക",
+      allPatients:"എല്ലാ രോഗികളും", today:"ഇന്നത്തെ മരുന്നുകൾ", languageChanged:"ഭാഷ മാറ്റി"
+    },
+    te:{
+      name:"🌐 తెలుగు", dashboard:"డాష్‌బోర్డ్", patients:"రోగులు", medicines:"మందులు",
+      calendar:"క్యాలెండర్", visits:"డాక్టర్ సందర్శనలు", refills:"రిఫిల్‌లు", emergency:"అత్యవసరం",
+      documents:"పత్రాలు", finder:"మందుల శోధన", reports:"నివేదికలు", backup:"బ్యాకప్",
+      caregiver:"కేర్‌గివర్", notifications:"🔔 నోటిఫికేషన్లు", logout:"లాగ్ అవుట్",
+      addMedicine:"+ మందు జోడించండి", addPatient:"+ రోగిని జోడించండి",
+      searchMedicine:"మందు పేరు వెతకండి", allPatients:"అన్ని రోగులు",
+      today:"ఈరోజు మందులు", languageChanged:"భాష మార్చబడింది"
+    },
+    kn:{
+      name:"🌐 ಕನ್ನಡ", dashboard:"ಡ್ಯಾಶ್‌ಬೋರ್ಡ್", patients:"ರೋಗಿಗಳು", medicines:"ಔಷಧಿಗಳು",
+      calendar:"ಕ್ಯಾಲೆಂಡರ್", visits:"ವೈದ್ಯರ ಭೇಟಿಗಳು", refills:"ರಿಫಿಲ್‌ಗಳು", emergency:"ತುರ್ತು",
+      documents:"ದಾಖಲೆಗಳು", finder:"ಔಷಧಿ ಹುಡುಕಾಟ", reports:"ವರದಿಗಳು", backup:"ಬ್ಯಾಕಪ್",
+      caregiver:"ಕೇರ್‌ಗಿವರ್", notifications:"🔔 ಅಧಿಸೂಚನೆಗಳು", logout:"ಲಾಗ್ ಔಟ್",
+      addMedicine:"+ ಔಷಧಿ ಸೇರಿಸಿ", addPatient:"+ ರೋಗಿಯನ್ನು ಸೇರಿಸಿ",
+      searchMedicine:"ಔಷಧಿಯ ಹೆಸರನ್ನು ಹುಡುಕಿ", allPatients:"ಎಲ್ಲಾ ರೋಗಿಗಳು",
+      today:"ಇಂದಿನ ಔಷಧಿಗಳು", languageChanged:"ಭಾಷೆ ಬದಲಾಯಿಸಲಾಗಿದೆ"
+    },
+    bn:{
+      name:"🌐 বাংলা", dashboard:"ড্যাশবোর্ড", patients:"রোগীরা", medicines:"ওষুধ",
+      calendar:"ক্যালেন্ডার", visits:"ডাক্তারের ভিজিট", refills:"রিফিল", emergency:"জরুরি",
+      documents:"নথি", finder:"ওষুধ খুঁজুন", reports:"রিপোর্ট", backup:"ব্যাকআপ",
+      caregiver:"কেয়ারগিভার", notifications:"🔔 বিজ্ঞপ্তি", logout:"লগআউট",
+      addMedicine:"+ ওষুধ যোগ করুন", addPatient:"+ রোগী যোগ করুন",
+      searchMedicine:"ওষুধের নাম খুঁজুন", allPatients:"সব রোগী",
+      today:"আজকের ওষুধ", languageChanged:"ভাষা পরিবর্তন করা হয়েছে"
     }
-    te: {
-  dashboard: "డాష్‌బోర్డ్",
-  patients: "రోగులు",
-  medicines: "మందులు",
-  calendar: "క్యాలెండర్",
-  visits: "డాక్టర్ సందర్శనలు",
-  refills: "రిఫిల్‌లు",
-  emergency: "అత్యవసరం",
-  documents: "పత్రాలు",
-  finder: "మందుల శోధన",
-  reports: "నివేదికలు",
-  backup: "బ్యాకప్",
-  caregiver: "కేర్‌గివర్",
-  searchMedicine: "మందు పేరు వెతకండి",
-  allPatients: "అన్ని రోగులు"
-},
-
-kn: {
-  dashboard: "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
-  patients: "ರೋಗಿಗಳು",
-  medicines: "ಔಷಧಿಗಳು",
-  calendar: "ಕ್ಯಾಲೆಂಡರ್",
-  visits: "ವೈದ್ಯರ ಭೇಟಿಗಳು",
-  refills: "ರಿಫಿಲ್‌ಗಳು",
-  emergency: "ತುರ್ತು",
-  documents: "ದಾಖಲೆಗಳು",
-  finder: "ಔಷಧಿ ಹುಡುಕಾಟ",
-  reports: "ವರದಿಗಳು",
-  backup: "ಬ್ಯಾಕಪ್",
-  caregiver: "ಕೇರ್‌ಗಿವರ್",
-  searchMedicine: "ಔಷಧಿಯ ಹೆಸರನ್ನು ಹುಡುಕಿ",
-  allPatients: "ಎಲ್ಲಾ ರೋಗಿಗಳು"
-},
-
-bn: {
-  dashboard: "ড্যাশবোর্ড",
-  patients: "রোগীরা",
-  medicines: "ওষুধ",
-  calendar: "ক্যালেন্ডার",
-  visits: "ডাক্তারের ভিজিট",
-  refills: "রিফিল",
-  emergency: "জরুরি",
-  documents: "নথি",
-  finder: "ওষুধ খুঁজুন",
-  reports: "রিপোর্ট",
-  backup: "ব্যাকআপ",
-  caregiver: "কেয়ারগিভার",
-  searchMedicine: "ওষুধের নাম খুঁজুন",
-  allPatients: "সব রোগী"
-},
   };
 
-
-  let appLanguage =
-    localStorage.getItem("smr_language")
-    || "en";
-
-
-  function setAppLanguage(lang) {
-
-    if (!LANG[lang]) return;
-
-    appLanguage = lang;
-
-    localStorage.setItem(
-      "smr_language",
-      lang
-    );
-
-    updateLanguageButton();
-
-    translateNavigation();
-
-    translateMedicineSearch();
-
-    toast(
-      toast(
-  lang === "ta"
-    ? "மொழி மாற்றப்பட்டது"
-    : lang === "hi"
-    ? "भाषा बदल दी गई"
-    : lang === "ml"
-    ? "ഭാഷ മാറ്റി"
-    : lang === "te"
-    ? "భాష మార్చబడింది"
-    : lang === "kn"
-    ? "ಭಾಷೆ ಬದಲಾಯಿಸಲಾಗಿದೆ"
-    : lang === "bn"
-    ? "ভাষা পরিবর্তন করা হয়েছে"
-    : "Language changed"
-    );
-  }
-
-
-  function updateLanguageButton() {
-
-    const buttons =
-      document.querySelectorAll(
-        "button[onclick*='toggleLanguage']"
-      );
-
-  const names = {
-  en: "🌐 English",
-  ta: "🌐 தமிழ்",
-  hi: "🌐 हिन्दी",
-  ml: "🌐 മലയാളം",
-  te: "🌐 తెలుగు",
-  kn: "🌐 ಕನ್ನಡ",
-  bn: "🌐 বাংলা"
-    };
-
-    buttons.forEach(btn => {
-      btn.textContent =
-        names[appLanguage];
-    });
-  }
-
-
-  function translateNavigation() {
-
-    const keyMap = {
-      dashboard: "dashboard",
-      patients: "patients",
-      medicines: "medicines",
-      calendar: "calendar",
-      visits: "visits",
-      refills: "refills",
-      emergency: "emergency",
-      documents: "documents",
-      finder: "finder",
-      reports: "reports",
-      backup: "backup",
-      caregiver: "caregiver"
-    };
-
-    document
-      .querySelectorAll(".tab")
-      .forEach(button => {
-
-        const tab =
-          button.dataset.tab;
-
-        if (
-          keyMap[tab] &&
-          LANG[appLanguage][keyMap[tab]]
-        ) {
-
-          button.textContent =
-            LANG[appLanguage][keyMap[tab]];
-        }
-      });
-
-
-    document
-      .querySelectorAll(
-        "#medicineSearch"
-      )
-      .forEach(input => {
-
-        input.placeholder =
-          LANG[appLanguage]
-            .searchMedicine;
-      });
-
-
-    const patientFilter =
-      document.getElementById(
-        "medicinePatientFilter"
-      );
-
-    if (patientFilter) {
-
-      const first =
-        patientFilter.options[0];
-
-      if (first) {
-
-        first.textContent =
-          LANG[appLanguage]
-            .allPatients;
-      }
-    }
-  }
-
-
-  function translateMedicineSearch() {
-
-    const input =
-      document.getElementById(
-        "finderSearch"
-      );
-
-    if (input) {
-
-      input.placeholder =
-        LANG[appLanguage]
-          .searchMedicine;
-    }
-  }
-
-
-  /* ---------- LANGUAGE SELECTOR ---------- */
-
-  function openLanguageMenu() {
-
-    const choices = [
-       ["en", "🇬🇧 English"],
-  ["ta", "🇮🇳 தமிழ்"],
-  ["hi", "🇮🇳 हिन्दी"],
-  ["ml", "🇮🇳 മലയാളം"],
-  ["te", "🇮🇳 తెలుగు"],
-  ["kn", "🇮🇳 ಕನ್ನಡ"],
-  ["bn", "🇮🇳 বাংলা"]
-    ];
-
-    openModal(
-      "🌐 Select Language",
-
-      `
-      <div class="list">
-
-        ${choices.map(item => `
-
-          <button
-            class="btn secondary"
-            style="width:100%;margin-bottom:8px"
-            onclick="window.SMRSetLanguage('${item[0]}')">
-
-            ${item[1]}
-
-          </button>
-
-        `).join("")}
-
-      </div>
-      `
-    );
-  }
-
-
-  window.SMRSetLanguage =
-    function(lang) {
-
-      setAppLanguage(lang);
-
-      closeModal();
-
-      applyLanguage();
-    };
-
-
-  /* Replace old 2-language toggle safely */
-  window.toggleLanguage =
-    function() {
-      openLanguageMenu();
-    };
-
-
-  /* ---------- SMART MEDICINE CATALOG ---------- */
-
-  const SMART_MEDICINES = [
-
-    {
-      name: "Paracetamol",
-      aliases: [
-        "acetaminophen",
-        "crocin",
-        "calpol",
-        "dolo"
-      ],
-      related: [
-        "Acetaminophen"
-      ],
-      category: "Pain / Fever"
-    },
-
-    {
-      name: "Ibuprofen",
-      aliases: [
-        "advil",
-        "motrin"
-      ],
-      related: [
-        "Naproxen",
-        "Diclofenac"
-      ],
-      category: "Pain / Inflammation"
-    },
-
-    {
-      name: "Amoxicillin",
-      aliases: [
-        "amoxil",
-        "amox"
-      ],
-      related: [
-        "Amoxicillin + Clavulanate"
-      ],
-      category: "Antibiotic"
-    },
-
-    {
-      name: "Azithromycin",
-      aliases: [
-        "azithro"
-      ],
-      related: [
-        "Clarithromycin",
-        "Erythromycin"
-      ],
-      category: "Antibiotic"
-    },
-
-    {
-      name: "Cetirizine",
-      aliases: [
-        "zyrtec",
-        "cetirizine hcl"
-      ],
-      related: [
-        "Levocetirizine",
-        "Loratadine"
-      ],
-      category: "Allergy"
-    },
-
-    {
-      name: "Levocetirizine",
-      aliases: [
-        "levocet",
-        "xyzal"
-      ],
-      related: [
-        "Cetirizine",
-        "Loratadine"
-      ],
-      category: "Allergy"
-    },
-
-    {
-      name: "Omeprazole",
-      aliases: [
-        "omeprazol"
-      ],
-      related: [
-        "Pantoprazole",
-        "Esomeprazole"
-      ],
-      category: "Acid reduction"
-    },
-
-    {
-      name: "Pantoprazole",
-      aliases: [
-        "pantoprazol"
-      ],
-      related: [
-        "Omeprazole",
-        "Esomeprazole"
-      ],
-      category: "Acid reduction"
-    },
-
-    {
-      name: "Metformin",
-      aliases: [
-        "glucophage"
-      ],
-      related: [
-        "Metformin extended release"
-      ],
-      category: "Diabetes"
-    },
-
-    {
-      name: "Amlodipine",
-      aliases: [
-        "amlodipine besylate"
-      ],
-      related: [
-        "Losartan",
-        "Telmisartan"
-      ],
-      category: "Blood pressure"
-    },
-
-    {
-      name: "Losartan",
-      aliases: [
-        "losartan potassium"
-      ],
-      related: [
-        "Amlodipine",
-        "Telmisartan"
-      ],
-      category: "Blood pressure"
-    },
-
-    {
-      name: "Telmisartan",
-      aliases: [
-        "telmisartan"
-      ],
-      related: [
-        "Losartan",
-        "Amlodipine"
-      ],
-      category: "Blood pressure"
-    },
-
-    {
-      name: "Atorvastatin",
-      aliases: [
-        "atorvastatin calcium"
-      ],
-      related: [
-        "Rosuvastatin"
-      ],
-      category: "Cholesterol"
-    },
-
-    {
-      name: "Rosuvastatin",
-      aliases: [
-        "rosuvastatin calcium"
-      ],
-      related: [
-        "Atorvastatin"
-      ],
-      category: "Cholesterol"
-    },
-
-    {
-      name: "Ondansetron",
-      aliases: [
-        "ondansetron hcl"
-      ],
-      related: [
-        "Domperidone"
-      ],
-      category: "Nausea / Vomiting"
-    },
-
-    {
-      name: "Montelukast",
-      aliases: [
-        "montelukast sodium"
-      ],
-      related: [
-        "Montelukast + Levocetirizine"
-      ],
-      category: "Allergy / Respiratory"
-    }
-
+  const MEDS = [
+    {name:"Paracetamol",aliases:["acetaminophen","pcm"],brands:["Crocin","Calpol","Dolo"],related:["fever","pain relief"],category:"Pain/Fever"},
+    {name:"Ibuprofen",aliases:["ibuprofen"],brands:["Brufen","Advil"],related:["pain","inflammation","fever"],category:"Pain/Inflammation"},
+    {name:"Cetirizine",aliases:["cetirizine"],brands:["Zyrtec","Okacet"],related:["allergy","sneezing"],category:"Allergy"},
+    {name:"Levocetirizine",aliases:["levocetirizine"],brands:["Levocet","Xyzal"],related:["allergy","rhinitis"],category:"Allergy"},
+    {name:"Amoxicillin",aliases:["amoxicillin"],brands:["Mox","Amoxil"],related:["bacterial infection"],category:"Antibiotic"},
+    {name:"Azithromycin",aliases:["azithromycin"],brands:["Azithral","Zithromax"],related:["bacterial infection"],category:"Antibiotic"},
+    {name:"Pantoprazole",aliases:["pantoprazole"],brands:["Pantocid","Protonix"],related:["acidity","reflux"],category:"Acid reduction"},
+    {name:"Omeprazole",aliases:["omeprazole"],brands:["Omez","Prilosec"],related:["acidity","reflux"],category:"Acid reduction"},
+    {name:"Metformin",aliases:["metformin"],brands:["Glycomet","Glucophage"],related:["type 2 diabetes"],category:"Diabetes"},
+    {name:"Amlodipine",aliases:["amlodipine"],brands:["Amlong","Norvasc"],related:["blood pressure"],category:"Blood pressure"},
+    {name:"Losartan",aliases:["losartan"],brands:["Losar","Cozaar"],related:["blood pressure"],category:"Blood pressure"},
+    {name:"Atorvastatin",aliases:["atorvastatin"],brands:["Atorva","Lipitor"],related:["cholesterol"],category:"Cholesterol"},
+    {name:"Montelukast",aliases:["montelukast"],brands:["Montair","Singulair"],related:["allergy","asthma"],category:"Respiratory/Allergy"},
+    {name:"Salbutamol",aliases:["albuterol","salbutamol"],brands:["Asthalin","Ventolin"],related:["wheezing","bronchospasm"],category:"Respiratory"},
+    {name:"Ondansetron",aliases:["ondansetron"],brands:["Ondem","Zofran"],related:["nausea","vomiting"],category:"Anti-nausea"},
+    {name:"Domperidone",aliases:["domperidone"],brands:["Domstal","Motilium"],related:["nausea","gastric symptoms"],category:"Gastrointestinal"},
+    {name:"Diclofenac",aliases:["diclofenac"],brands:["Voveran","Voltaren"],related:["pain","inflammation"],category:"Pain/Inflammation"},
+    {name:"Mupirocin",aliases:["mupirocin"],brands:["T-Bact","Bactroban"],related:["skin bacterial infection"],category:"Topical antibiotic"},
+    {name:"Clotrimazole",aliases:["clotrimazole"],brands:["Candid","Canesten"],related:["fungal skin infection"],category:"Antifungal"},
+    {name:"ORS",aliases:["oral rehydration salts","oral rehydration solution"],brands:["Electral"],related:["dehydration"],category:"Rehydration"}
   ];
 
-
-  /* ---------- FUZZY SEARCH ---------- */
-
-  function smartMedicineSearch(query) {
-
-    query =
-      String(query || "")
-        .trim()
-        .toLowerCase();
-
-    if (!query) {
-
-      return SMART_MEDICINES;
-    }
-
-
-    return SMART_MEDICINES
-      .map(medicine => {
-
-        const main =
-          medicine.name
-            .toLowerCase();
-
-        const aliases =
-          medicine.aliases
-            .join(" ")
-            .toLowerCase();
-
-        const related =
-          medicine.related
-            .join(" ")
-            .toLowerCase();
-
-        let score = 0;
-
-        if (main === query)
-          score += 100;
-
-        if (main.startsWith(query))
-          score += 70;
-
-        if (main.includes(query))
-          score += 50;
-
-        if (aliases.includes(query))
-          score += 40;
-
-        if (related.includes(query))
-          score += 25;
-
-        return {
-          medicine,
-          score
-        };
-
-      })
-
-      .filter(x => x.score > 0)
-
-      .sort(
-        (a,b) =>
-          b.score - a.score
-      )
-
-      .map(x => x.medicine);
+  function L(){ return LANGS[localStorage.getItem("smr_language") || "en"] || LANGS.en; }
+  function fmtDateLocal(d=new Date()){
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
   }
+  function addDays(dateStr,delta){
+    const d=new Date(dateStr+"T00:00:00"); d.setDate(d.getDate()+delta); return fmtDateLocal(d);
+  }
+  function isOwner(){ return currentProfile?.role==="owner"; }
+  function isApproved(){ return !currentProfile || currentProfile.status==="approved"; }
+  function canEdit(){ return isApproved(); }
 
-
-  window.renderFinder =
-    function() {
-
-      const input =
-        document.getElementById(
-          "finderSearch"
-        );
-
-      const list =
-        document.getElementById(
-          "finderList"
-        );
-
-      if (!input || !list)
-        return;
-
-
-      const query =
-        input.value;
-
-
-      const results =
-        smartMedicineSearch(query);
-
-
-      if (!results.length) {
-
-        list.innerHTML = `
-
-          <div class="item">
-
-            <b>
-              ${
-                appLanguage === "ta"
-                ? "மருந்து கிடைக்கவில்லை"
-                : appLanguage === "hi"
-                ? "दवा नहीं मिली"
-                : appLanguage === "ml"
-                ? "മരുന്ന് കണ്ടെത്തിയില്ല"
-                : "No medicine found"
-              }
-            </b>
-
-            <p class="muted">
-              ${
-                appLanguage === "ta"
-                ? "வேறு பெயர் அல்லது generic name முயற்சி செய்யுங்கள்."
-                : appLanguage === "hi"
-                ? "दूसरा नाम या generic name आज़माएँ."
-                : appLanguage === "ml"
-                ? "മറ്റൊരു പേര് അല്ലെങ്കിൽ generic name ശ്രമിക്കുക."
-                : "Try another name or generic name."
-              }
-            </p>
-
-          </div>
-
-        `;
-
-        return;
-      }
-
-
-      list.innerHTML =
-        results.map(m => `
-
-          <div class="item">
-
-            <h3>
-              💊 ${escapeHTML(m.name)}
-            </h3>
-
-            <p>
-              <b>Category:</b>
-              ${escapeHTML(m.category)}
-            </p>
-
-            <p>
-              <b>Related:</b>
-              ${escapeHTML(
-                m.related.join(", ")
-              )}
-            </p>
-
-            <p class="muted">
-              ${
-                appLanguage === "ta"
-                ? "இது தகவல் தேடலுக்காக மட்டுமே. மருத்துவர் பரிந்துரையை மாற்றாது."
-                : appLanguage === "hi"
-                ? "यह केवल जानकारी के लिए है और डॉक्टर की सलाह का विकल्प नहीं है."
-                : appLanguage === "ml"
-                ? "ഇത് വിവര ആവശ്യങ്ങൾക്ക് മാത്രം. ഡോക്ടറുടെ നിർദ്ദേശത്തിന് പകരമല്ല."
-                : "Information only. It does not replace a doctor's prescription."
-              }
-            </p>
-
-            <button
-              class="btn secondary small"
-              onclick='useMedicineName(${JSON.stringify(m.name)})'>
-
-              ${
-                appLanguage === "ta"
-                ? "இந்த பெயரை பயன்படுத்தவும்"
-                : appLanguage === "hi"
-                ? "यह नाम उपयोग करें"
-                : appLanguage === "ml"
-                ? "ഈ പേര് ഉപയോഗിക്കുക"
-                : "Use this medicine name"
-              }
-
-            </button>
-
-          </div>
-
-        `).join("");
+  /* ---------- Language ---------- */
+  window.toggleLanguage = function(){
+    const current=localStorage.getItem("smr_language") || "en";
+    const html=Object.entries(LANGS).map(([k,v])=>
+      `<button class="smr-lang-btn" onclick="SMRSetLanguage('${k}')">${v.name}</button>`
+    ).join("");
+    openModal("🌐 Choose Language", `<div class="smr-lang-grid">${html}</div>`);
   };
 
-
-  /* ---------- INITIALISE ---------- */
-
-  setTimeout(() => {
-
-    updateLanguageButton();
-
-    translateNavigation();
-
-    translateMedicineSearch();
-
-    const finder =
-      document.getElementById(
-        "finderSearch"
-      );
-
-    if (finder) {
-
-      finder.addEventListener(
-        "input",
-        window.renderFinder
-      );
-
-    }
-
-  }, 500);
-
-
-})();
-</script>
-<script>
-/* =========================================================
-   DOSE HISTORY - TAKEN / MISSED
-========================================================= */
-
-(function(){
-
-  const style = document.createElement("style");
-  style.textContent = `
-    #doseHistoryBtn{
-      position:fixed;
-      right:20px;
-      bottom:20px;
-      z-index:9998;
-      border:none;
-      border-radius:25px;
-      padding:12px 18px;
-      cursor:pointer;
-      font-weight:700;
-      box-shadow:0 4px 15px rgba(0,0,0,.2);
-    }
-
-    #doseHistoryModal{
-      display:none;
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.55);
-      z-index:9999;
-      align-items:center;
-      justify-content:center;
-      padding:20px;
-    }
-
-    #doseHistoryBox{
-      width:min(700px,95vw);
-      max-height:85vh;
-      overflow:auto;
-      background:white;
-      border-radius:18px;
-      padding:20px;
-    }
-
-    #doseHistoryBox h2{
-      margin-top:0;
-    }
-
-    .dose-history-row{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:10px;
-      padding:12px;
-      margin:8px 0;
-      border-radius:12px;
-      background:#f5f5f5;
-    }
-
-    .dose-taken{
-      color:#16833b;
-      font-weight:700;
-    }
-
-    .dose-missed{
-      color:#c62828;
-      font-weight:700;
-    }
-
-    #doseHistoryClose{
-      float:right;
-      border:none;
-      background:#eee;
-      border-radius:50%;
-      width:34px;
-      height:34px;
-      cursor:pointer;
-      font-size:18px;
-    }
-
-    #doseHistoryDate{
-      padding:9px;
-      border-radius:8px;
-      border:1px solid #ccc;
-      margin:10px 0;
-    }
-  `;
-
-  document.head.appendChild(style);
-
-  const btn = document.createElement("button");
-  btn.id = "doseHistoryBtn";
-  btn.innerHTML = "📋 Dose History";
-  document.body.appendChild(btn);
-
-  const modal = document.createElement("div");
-  modal.id = "doseHistoryModal";
-
-  modal.innerHTML = `
-    <div id="doseHistoryBox">
-
-      <button id="doseHistoryClose">✕</button>
-
-      <h2>📋 Dose History</h2>
-
-      <label><b>Select Date:</b></label><br>
-
-      <input
-        type="date"
-        id="doseHistoryDate"
-      >
-
-      <div id="doseHistorySummary"></div>
-
-      <div id="doseHistoryList">
-        Loading...
-      </div>
-
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-  function getMedicineName(id){
-    const medicine = (window.medicines || []).find(
-      m => String(m.id) === String(id)
-    );
-
-    return medicine ? medicine.name : "Medicine";
-  }
-
-  function renderHistory(){
-
-    const dateInput = document.getElementById("doseHistoryDate");
-    const list = document.getElementById("doseHistoryList");
-    const summary = document.getElementById("doseHistorySummary");
-
-    const selectedDate = dateInput.value;
-
-    const logs = (window.doseLogs || []).filter(
-      log => log.date === selectedDate
-    );
-
-    if(!logs.length){
-
-      summary.innerHTML = `
-        <p><b>0</b> doses recorded</p>
-      `;
-
-      list.innerHTML = `
-        <div style="padding:20px;text-align:center;">
-          No dose history for this date.
-        </div>
-      `;
-
-      return;
-    }
-
-    const taken = logs.filter(x => x.status === "taken").length;
-    const missed = logs.filter(x => x.status === "missed").length;
-
-    summary.innerHTML = `
-      <p>
-        💚 Taken: <b>${taken}</b>
-        &nbsp;&nbsp;
-        ❌ Missed: <b>${missed}</b>
-      </p>
-    `;
-
-    list.innerHTML = logs.map(log => {
-
-      const name = getMedicineName(log.medicine_id);
-
-      const statusClass =
-        log.status === "taken"
-        ? "dose-taken"
-        : "dose-missed";
-
-      const statusText =
-        log.status === "taken"
-        ? "✓ Taken"
-        : "✕ Missed";
-
-      return `
-        <div class="dose-history-row">
-
-          <div>
-            <b>${name}</b><br>
-            <small>${log.date || ""}</small>
-          </div>
-
-          <div class="${statusClass}">
-            ${statusText}
-          </div>
-
-        </div>
-      `;
-
-    }).join("");
-  }
-
-  btn.addEventListener("click", async function(){
-
-    modal.style.display = "flex";
-
-    const dateInput = document.getElementById("doseHistoryDate");
-
-    const now = new Date();
-
-    const localDate =
-      now.getFullYear() + "-" +
-      String(now.getMonth()+1).padStart(2,"0") + "-" +
-      String(now.getDate()).padStart(2,"0");
-
-    dateInput.value = localDate;
-
-    if(typeof window.loadAll === "function"){
-      try{
-        await window.loadAll();
-      }catch(e){
-        console.log("History refresh skipped:", e);
-      }
-    }
-
-    renderHistory();
-  });
-
-  document.getElementById("doseHistoryClose")
-    .addEventListener("click", function(){
-      modal.style.display = "none";
+  window.SMRSetLanguage = function(lang){
+    if(!LANGS[lang]) return;
+    localStorage.setItem("smr_language",lang);
+    closeModal();
+    applySmartLanguage();
+    toast(LANGS[lang].languageChanged);
+  };
+
+  function applySmartLanguage(){
+    const t=L();
+    document.querySelectorAll(".tab").forEach(b=>{
+      const k=b.dataset.tab;
+      if(t[k]) b.textContent=t[k];
     });
-
-  document.getElementById("doseHistoryDate")
-    .addEventListener("change", renderHistory);
-
-  modal.addEventListener("click", function(e){
-    if(e.target === modal){
-      modal.style.display = "none";
-    }
-  });
-
-})();
-</script>
-<script>
-/* =========================================================
-   REPEAT MEDICINE SCHEDULE
-========================================================= */
-
-(function(){
-
-  const STORAGE_KEY = "smr_repeat_schedules";
-
-  function getSchedules(){
-    try{
-      return JSON.parse(
-        localStorage.getItem(STORAGE_KEY) || "{}"
-      );
-    }catch(e){
-      return {};
-    }
+    const ms=document.getElementById("medicineSearch");
+    if(ms) ms.placeholder=t.searchMedicine;
+    const mf=document.getElementById("medicinePatientFilter");
+    if(mf && mf.options[0]) mf.options[0].textContent=t.allPatients;
+    const rp=document.getElementById("reportPatient");
+    if(rp && rp.options[0]) rp.options[0].textContent=t.allPatients;
+    document.querySelectorAll("button[onclick*='enableNotifications']").forEach(b=>b.textContent=t.notifications);
+    document.querySelectorAll("button[onclick*='logout']").forEach(b=>b.textContent=t.logout);
+    const ab=document.getElementById("authButton");
+    if(ab) ab.textContent=authMode==="login"?(t.dashboard==="முகப்பு"?"உள்நுழை":"Login"):(t.addPatient.startsWith("+")&&localStorage.getItem("smr_language")==="ta"?"Caregiver கணக்கு உருவாக்கு":"Create Caregiver Account");
+    const addM=document.querySelector("button[onclick='openMedicineModal()']");
+    if(addM) addM.textContent=t.addMedicine;
+    const addP=document.querySelector("button[onclick='openPatientModal()']");
+    if(addP) addP.textContent=t.addPatient;
+    const td=document.querySelector("#dashboard h3");
+    if(td && td.textContent.includes("Today's")) td.textContent="📅 "+t.today;
+    updateLanguageButtons();
   }
 
-  function saveSchedules(data){
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(data)
-    );
+  function updateLanguageButtons(){
+    const t=L();
+    document.querySelectorAll("button[onclick*='toggleLanguage']").forEach(b=>b.textContent=t.name);
   }
 
-  const style = document.createElement("style");
+  /* ---------- Dark mode ---------- */
+  function applyTheme(){
+    const dark=localStorage.getItem("smr_theme")==="dark";
+    document.body.classList.toggle("smr-dark",dark);
+  }
+  window.toggleSmartDarkMode=function(){
+    localStorage.setItem("smr_theme",document.body.classList.contains("smr-dark")?"light":"dark");
+    applyTheme();
+  };
 
-  style.textContent = `
-    #repeatScheduleBtn{
-      position:fixed;
-      right:20px;
-      bottom:75px;
-      z-index:9997;
-      border:none;
-      border-radius:25px;
-      padding:12px 18px;
-      cursor:pointer;
-      font-weight:700;
-      box-shadow:0 4px 15px rgba(0,0,0,.2);
+  /* ---------- Repeat schedules ---------- */
+  const SKEY="smr_repeat_schedules";
+  function schedules(){
+    try{return JSON.parse(localStorage.getItem(SKEY)||"{}")}catch(e){return {}}
+  }
+  function saveSchedules(v){localStorage.setItem(SKEY,JSON.stringify(v));}
+  function scheduleApplies(m,date){
+    const s=schedules()[String(m.id)];
+    if(!s) return true;
+    if(s.start && date<s.start) return false;
+    if(s.end && date>s.end) return false;
+    if(s.type==="weekly"){
+      const day=new Date(date+"T00:00:00").getDay();
+      return (s.days||[]).map(Number).includes(day);
     }
+    return true;
+  }
+  function medicineActiveOn(m,date){
+    return (!m.start_date || m.start_date<=date) &&
+           (!m.end_date || m.end_date>=date) &&
+           scheduleApplies(m,date);
+  }
+  window.getSMRDueMedicines=function(date=fmtDateLocal()){
+    return (medicines||[]).filter(m=>medicineActiveOn(m,date));
+  };
 
-    #repeatScheduleModal{
-      display:none;
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.55);
-      z-index:9999;
-      align-items:center;
-      justify-content:center;
-      padding:20px;
-    }
-
-    #repeatScheduleBox{
-      width:min(600px,95vw);
-      max-height:85vh;
-      overflow:auto;
-      background:white;
-      border-radius:18px;
-      padding:20px;
-    }
-
-    .schedule-field{
-      margin:12px 0;
-    }
-
-    .schedule-field label{
-      display:block;
-      font-weight:700;
-      margin-bottom:6px;
-    }
-
-    .schedule-field select,
-    .schedule-field input{
-      width:100%;
-      padding:10px;
-      border:1px solid #ccc;
-      border-radius:8px;
-      box-sizing:border-box;
-    }
-
-    .day-buttons{
-      display:flex;
-      flex-wrap:wrap;
-      gap:6px;
-    }
-
-    .day-buttons label{
-      padding:8px 12px;
-      border:1px solid #ccc;
-      border-radius:8px;
-      cursor:pointer;
-      font-weight:500;
-    }
-
-    .day-buttons input{
-      width:auto;
-      margin-right:4px;
-    }
-
-    .schedule-item{
-      background:#f5f5f5;
-      padding:12px;
-      border-radius:10px;
-      margin-top:8px;
-    }
-
-    #repeatScheduleClose{
-      float:right;
-      border:none;
-      background:#eee;
-      border-radius:50%;
-      width:34px;
-      height:34px;
-      cursor:pointer;
-      font-size:18px;
-    }
-  `;
-
-  document.head.appendChild(style);
-
-
-  /* BUTTON */
-
-  const button = document.createElement("button");
-
-  button.id = "repeatScheduleBtn";
-  button.innerHTML = "🔁 Repeat Schedule";
-
-  document.body.appendChild(button);
-
-
-  /* MODAL */
-
-  const modal = document.createElement("div");
-
-  modal.id = "repeatScheduleModal";
-
-  modal.innerHTML = `
-
-    <div id="repeatScheduleBox">
-
-      <button id="repeatScheduleClose">
-        ✕
-      </button>
-
-      <h2>🔁 Repeat Medicine Schedule</h2>
-
-      <div class="schedule-field">
-
-        <label>Select Medicine</label>
-
-        <select id="scheduleMedicine">
-          <option value="">
-            Select medicine
-          </option>
-        </select>
-
+  function openRepeatManager(){
+    const all=medicines||[];
+    const current=schedules();
+    const opts=all.map(m=>`<option value="${escapeHTML(m.id)}">${escapeHTML(m.name)} — ${escapeHTML(patientName(m.patient_id))}</option>`).join("");
+    openModal("🔁 Repeat Medicine Schedule",`
+      <div class="smr-grid">
+        <div class="field"><label>Medicine</label><select id="smrRepMed"><option value="">Select medicine</option>${opts}</select></div>
+        <div class="field"><label>Repeat type</label><select id="smrRepType"><option value="daily">Every day</option><option value="weekly">Selected days</option></select></div>
+        <div class="field"><label>Start</label><input id="smrRepStart" type="date" value="${today()}"></div>
+        <div class="field"><label>End</label><input id="smrRepEnd" type="date"></div>
       </div>
-
-
-      <div class="schedule-field">
-
-        <label>Repeat Type</label>
-
-        <select id="scheduleType">
-
-          <option value="daily">
-            Every Day
-          </option>
-
-          <option value="weekly">
-            Selected Days
-          </option>
-
-        </select>
-
-      </div>
-
-
-      <div
-        class="schedule-field"
-        id="scheduleDaysBox">
-
-        <label>Select Days</label>
-
-        <div class="day-buttons">
-
-          <label>
-            <input type="checkbox" value="1">
-            Mon
-          </label>
-
-          <label>
-            <input type="checkbox" value="2">
-            Tue
-          </label>
-
-          <label>
-            <input type="checkbox" value="3">
-            Wed
-          </label>
-
-          <label>
-            <input type="checkbox" value="4">
-            Thu
-          </label>
-
-          <label>
-            <input type="checkbox" value="5">
-            Fri
-          </label>
-
-          <label>
-            <input type="checkbox" value="6">
-            Sat
-          </label>
-
-          <label>
-            <input type="checkbox" value="0">
-            Sun
-          </label>
-
+      <div id="smrRepDays" class="field" style="margin-top:10px">
+        <label>Days</label>
+        <div class="smr-actions">
+          ${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d,i)=>`<label class="smr-chip"><input type="checkbox" value="${i}" class="smr-day"> ${d}</label>`).join("")}
         </div>
-
       </div>
-
-
-      <div class="schedule-field">
-
-        <label>Start Date</label>
-
-        <input
-          type="date"
-          id="scheduleStartDate"
-        >
-
-      </div>
-
-
-      <div class="schedule-field">
-
-        <label>End Date</label>
-
-        <input
-          type="date"
-          id="scheduleEndDate"
-        >
-
-      </div>
-
-
-      <button
-        id="saveRepeatSchedule"
-        class="btn">
-
-        💾 Save Schedule
-
-      </button>
-
-
+      <br>
+      <button class="btn" onclick="saveSMRRepeat()">💾 Save Schedule</button>
       <hr>
-
-      <h3>Saved Schedules</h3>
-
-      <div id="savedSchedules">
-        No schedules saved.
-      </div>
-
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-
-  function fillMedicines(){
-
-    const select =
-      document.getElementById("scheduleMedicine");
-
-    if(!select) return;
-
-    select.innerHTML = `
-      <option value="">
-        Select medicine
-      </option>
-    `;
-
-    (medicines || []).forEach(m => {
-
-      const option =
-        document.createElement("option");
-
-      option.value = m.id;
-
-      option.textContent =
-        m.name || "Medicine";
-
-      select.appendChild(option);
-
-    });
+      <div id="smrScheduleList"></div>
+    `);
+    const type=document.getElementById("smrRepType");
+    const days=document.getElementById("smrRepDays");
+    type.onchange=()=>days.style.display=type.value==="weekly"?"block":"none";
+    days.style.display="none";
+    renderScheduleList();
   }
-
-
-  function renderSavedSchedules(){
-
-    const box =
-      document.getElementById("savedSchedules");
-
-    const schedules = getSchedules();
-
-    const ids = Object.keys(schedules);
-
-    if(!ids.length){
-
-      box.innerHTML =
-        `<p class="muted">
-          No schedules saved.
-        </p>`;
-
-      return;
-    }
-
-
-    box.innerHTML = ids.map(id => {
-
-      const item = schedules[id];
-
-      const medicine =
-        (medicines || []).find(
-          m => String(m.id) === String(id)
-        );
-
-      const name =
-        medicine
-        ? medicine.name
-        : "Medicine";
-
-
-      const repeatText =
-        item.type === "daily"
-        ? "Every day"
-        : "Selected days";
-
-
-      const daysText =
-        item.type === "weekly"
-        ? item.days.join(", ")
-        : "";
-
-
-      return `
-
-        <div class="schedule-item">
-
-          <b>💊 ${name}</b>
-
-          <br>
-
-          Repeat:
-          ${repeatText}
-
-          ${daysText
-            ? `<br>Days: ${daysText}`
-            : ""}
-
-          <br>
-
-          Start:
-          ${item.start || "—"}
-
-          <br>
-
-          End:
-          ${item.end || "—"}
-
-          <br><br>
-
-          <button
-            class="btn danger small"
-            data-delete-schedule="${id}">
-
-            🗑️ Delete
-
-          </button>
-
-        </div>
-
-      `;
-
+  function renderScheduleList(){
+    const box=document.getElementById("smrScheduleList"); if(!box)return;
+    const data=schedules();
+    const rows=Object.entries(data).map(([id,s])=>{
+      const m=(medicines||[]).find(x=>String(x.id)===String(id));
+      if(!m)return "";
+      return `<div class="item"><b>💊 ${escapeHTML(m.name)}</b><br><span class="smr-muted">${s.type==="weekly"?"Selected days: "+(s.days||[]).join(", "):"Every day"} · ${s.start||"Any start"} → ${s.end||"No end"}</span><br><br><button class="btn danger small" onclick="deleteSMRRepeat('${escapeHTML(id)}')">Delete</button></div>`;
     }).join("");
-
-
-    box
-      .querySelectorAll("[data-delete-schedule]")
-      .forEach(btn => {
-
-        btn.addEventListener(
-          "click",
-          function(){
-
-            const schedules = getSchedules();
-
-            delete schedules[this.dataset.deleteSchedule];
-
-            saveSchedules(schedules);
-
-            renderSavedSchedules();
-
-          }
-        );
-
-      });
-
+    box.innerHTML=rows || `<p class="smr-muted">No repeat schedules saved.</p>`;
   }
-
-
-  /* OPEN */
-
-  button.addEventListener(
-    "click",
-    function(){
-
-      modal.style.display = "flex";
-
-      fillMedicines();
-
-      renderSavedSchedules();
-
-    }
-  );
-
-
-  /* CLOSE */
-
-  document
-    .getElementById("repeatScheduleClose")
-    .addEventListener(
-      "click",
-      function(){
-
-        modal.style.display = "none";
-
-      }
-    );
-
-
-  modal.addEventListener(
-    "click",
-    function(e){
-
-      if(e.target === modal){
-
-        modal.style.display = "none";
-
-      }
-
-    }
-  );
-
-
-  /* DAILY / WEEKLY */
-
-  document
-    .getElementById("scheduleType")
-    .addEventListener(
-      "change",
-      function(){
-
-        const box =
-          document.getElementById(
-            "scheduleDaysBox"
-          );
-
-        box.style.display =
-          this.value === "weekly"
-          ? "block"
-          : "none";
-
-      }
-    );
-
-
-  /* SAVE */
-
-  document
-    .getElementById("saveRepeatSchedule")
-    .addEventListener(
-      "click",
-      function(){
-
-        const medicineId =
-          document.getElementById(
-            "scheduleMedicine"
-          ).value;
-
-
-        const type =
-          document.getElementById(
-            "scheduleType"
-          ).value;
-
-
-        const start =
-          document.getElementById(
-            "scheduleStartDate"
-          ).value;
-
-
-        const end =
-          document.getElementById(
-            "scheduleEndDate"
-          ).value;
-
-
-        if(!medicineId){
-
-          alert("Please select a medicine.");
-
-          return;
-
-        }
-
-
-        let days = [];
-
-
-        if(type === "weekly"){
-
-          days = [
-            ...document.querySelectorAll(
-              "#scheduleDaysBox input:checked"
-            )
-          ].map(x => x.value);
-
-
-          if(!days.length){
-
-            alert("Please select at least one day.");
-
-            return;
-
-          }
-
-        }
-
-
-        const schedules = getSchedules();
-
-
-        schedules[medicineId] = {
-
-          type:type,
-
-          days:days,
-
-          start:start,
-
-          end:end
-
-        };
-
-
-        saveSchedules(schedules);
-
-        renderSavedSchedules();
-
-        alert(
-          "Repeat schedule saved successfully."
-        );
-
-      }
-    );
-
-
-  /* INITIAL */
-
-  document
-    .getElementById("scheduleDaysBox")
-    .style.display = "none";
-
-})();
-</script>
-<script>
-/* =========================================================
-   SMART MEDICINE REMINDER+ BALANCE PACK
-   Reminder + Snooze + Adherence + Stock Alert
-   Dark Mode + Mobile UI
-========================================================= */
-
-(function(){
-
-  /* =======================================================
-     MOBILE FRIENDLY UI
-  ======================================================= */
-
-  const style = document.createElement("style");
-
-  style.textContent = `
-
-    /* MOBILE */
-
-    @media(max-width:700px){
-
-      .container{
-        padding:12px !important;
-      }
-
-      .topbar-inner{
-        flex-direction:column !important;
-        gap:10px !important;
-      }
-
-      .tabs{
-        display:flex !important;
-        overflow-x:auto !important;
-        gap:6px !important;
-        padding-bottom:8px !important;
-      }
-
-      .tabs .btn{
-        white-space:nowrap !important;
-      }
-
-      .grid{
-        grid-template-columns:1fr !important;
-      }
-
-      .col6,
-      .col12{
-        grid-column:span 12 !important;
-      }
-
-      .form-grid{
-        grid-template-columns:1fr !important;
-      }
-
-      .actions{
-        flex-wrap:wrap !important;
-      }
-
-      #balanceButtons{
-        bottom:15px !important;
-        right:10px !important;
-      }
-
-    }
-
-
-    /* DARK MODE */
-
-    body.smr-dark{
-      background:#121212 !important;
-      color:#eeeeee !important;
-    }
-
-    body.smr-dark .card,
-    body.smr-dark .item,
-    body.smr-dark #smrReminderBox,
-    body.smr-dark #smrAdherenceBox{
-      background:#1e1e1e !important;
-      color:#eeeeee !important;
-    }
-
-    body.smr-dark input,
-    body.smr-dark select,
-    body.smr-dark textarea{
-      background:#252525 !important;
-      color:#ffffff !important;
-      border-color:#555 !important;
-    }
-
-    body.smr-dark .muted{
-      color:#bbbbbb !important;
-    }
-
-
-    /* FLOATING BUTTONS */
-
-    #balanceButtons{
-      position:fixed;
-      right:18px;
-      bottom:18px;
-      z-index:9990;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
-
-    #balanceButtons button{
-      border:none;
-      border-radius:22px;
-      padding:10px 15px;
-      cursor:pointer;
-      font-weight:700;
-      box-shadow:0 4px 14px rgba(0,0,0,.2);
-    }
-
-
-    /* REMINDER */
-
-    #smrReminderModal{
-      display:none;
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.6);
-      z-index:10000;
-      align-items:center;
-      justify-content:center;
-      padding:20px;
-    }
-
-    #smrReminderBox{
-      width:min(480px,95vw);
-      background:white;
-      border-radius:20px;
-      padding:22px;
-      box-shadow:0 10px 40px rgba(0,0,0,.3);
-    }
-
-    .smr-reminder-item{
-      padding:14px;
-      margin:10px 0;
-      border-radius:12px;
-      background:#f5f5f5;
-    }
-
-
-    /* ADHERENCE */
-
-    #smrAdherenceModal{
-      display:none;
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.6);
-      z-index:9999;
-      align-items:center;
-      justify-content:center;
-      padding:20px;
-    }
-
-    #smrAdherenceBox{
-      width:min(650px,95vw);
-      max-height:85vh;
-      overflow:auto;
-      background:white;
-      border-radius:20px;
-      padding:22px;
-    }
-
-    .smr-day{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      margin:10px 0;
-    }
-
-    .smr-bar{
-      flex:1;
-      height:14px;
-      background:#ddd;
-      border-radius:10px;
-      overflow:hidden;
-    }
-
-    .smr-bar-fill{
-      height:100%;
-      background:#35a853;
-      border-radius:10px;
-    }
-
-
-    /* LOW STOCK */
-
-    #smrStockAlert{
-      display:none;
-      position:fixed;
-      top:80px;
-      right:15px;
-      z-index:9998;
-      width:min(350px,90vw);
-      background:#fff4d6;
-      color:#6b4e00;
-      padding:15px;
-      border-radius:14px;
-      box-shadow:0 5px 20px rgba(0,0,0,.2);
-    }
-
-  `;
-
-  document.head.appendChild(style);
-
-
-  /* =======================================================
-     FLOATING BUTTONS
-  ======================================================= */
-
-  const buttons = document.createElement("div");
-
-  buttons.id = "balanceButtons";
-
-  buttons.innerHTML = `
-
-    <button
-      id="smrAdherenceBtn"
-      class="btn secondary">
-      📊 7-Day Adherence
-    </button>
-
-    <button
-      id="smrDarkBtn"
-      class="btn gray">
-      🌙 Dark Mode
-    </button>
-
-  `;
-
-  document.body.appendChild(buttons);
-
-
-  /* =======================================================
-     REMINDER MODAL
-  ======================================================= */
-
-  const reminderModal =
-    document.createElement("div");
-
-  reminderModal.id =
-    "smrReminderModal";
-
-  reminderModal.innerHTML = `
-
-    <div id="smrReminderBox">
-
-      <button
-        id="smrReminderClose"
-        style="
-          float:right;
-          border:none;
-          border-radius:50%;
-          width:32px;
-          height:32px;
-          cursor:pointer;
-        ">
-        ✕
-      </button>
-
-      <h2>🔔 Medicine Reminder</h2>
-
-      <p class="muted">
-        A scheduled medicine time has arrived.
-      </p>
-
-      <div id="smrReminderList"></div>
-
-    </div>
-
-  `;
-
-  document.body.appendChild(reminderModal);
-
-
-  /* =======================================================
-     ADHERENCE MODAL
-  ======================================================= */
-
-  const adherenceModal =
-    document.createElement("div");
-
-  adherenceModal.id =
-    "smrAdherenceModal";
-
-  adherenceModal.innerHTML = `
-
-    <div id="smrAdherenceBox">
-
-      <button
-        id="smrAdherenceClose"
-        style="
-          float:right;
-          border:none;
-          border-radius:50%;
-          width:32px;
-          height:32px;
-          cursor:pointer;
-        ">
-        ✕
-      </button>
-
-      <h2>📊 7-Day Adherence</h2>
-
-      <div id="smrAdherenceSummary"></div>
-
-      <hr>
-
-      <div id="smrAdherenceDays"></div>
-
-    </div>
-
-  `;
-
-  document.body.appendChild(adherenceModal);
-
-
-  /* =======================================================
-     LOW STOCK ALERT
-  ======================================================= */
-
-  const stockAlert =
-    document.createElement("div");
-
-  stockAlert.id =
-    "smrStockAlert";
-
-  document.body.appendChild(stockAlert);
-
-
-  /* =======================================================
-     HELPERS
-  ======================================================= */
-
-  function localDate(date){
-
-    return date.getFullYear() +
-      "-" +
-      String(date.getMonth()+1).padStart(2,"0") +
-      "-" +
-      String(date.getDate()).padStart(2,"0");
-
+  window.saveSMRRepeat=function(){
+    const id=document.getElementById("smrRepMed")?.value;
+    if(!id){toast("Select a medicine.");return}
+    const type=document.getElementById("smrRepType").value;
+    const start=document.getElementById("smrRepStart").value;
+    const end=document.getElementById("smrRepEnd").value;
+    const days=[...document.querySelectorAll(".smr-day:checked")].map(x=>Number(x.value));
+    if(type==="weekly" && !days.length){toast("Select at least one day.");return}
+    const data=schedules(); data[id]={type,start,end,days}; saveSchedules(data);
+    toast("Repeat schedule saved."); renderScheduleList();
+    if(typeof renderDashboard==="function") renderDashboard();
+  };
+  window.deleteSMRRepeat=function(id){
+    const data=schedules(); delete data[id]; saveSchedules(data); renderScheduleList();
+    if(typeof renderDashboard==="function") renderDashboard();
+  };
+
+  /* ---------- Smart medicine finder ---------- */
+  function smartSearch(q){
+    q=(q||"").trim().toLowerCase();
+    if(!q) return MEDS;
+    return MEDS.map(m=>{
+      const text=[m.name,...m.aliases,...m.brands,...m.related,m.category].join(" ").toLowerCase();
+      let score=0;
+      if(m.name.toLowerCase()===q) score+=100;
+      if(m.name.toLowerCase().startsWith(q)) score+=60;
+      if(text.includes(q)) score+=30;
+      return {m,score};
+    }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).map(x=>x.m);
   }
+  window.renderFinder=function(){
+    const box=document.getElementById("finderList"); if(!box)return;
+    const q=document.getElementById("finderSearch")?.value||"";
+    const rows=smartSearch(q);
+    box.innerHTML=rows.length?rows.map(m=>`
+      <div class="item">
+        <div class="actions" style="justify-content:space-between">
+          <b>💊 ${escapeHTML(m.name)}</b><span class="badge">${escapeHTML(m.category)}</span>
+        </div>
+        <p class="muted">Common aliases: ${escapeHTML(m.aliases.join(", ")||"—")}</p>
+        <p><b>Example brands:</b> ${escapeHTML(m.brands.join(", ")||"—")}</p>
+        <p><b>Related terms:</b> ${escapeHTML(m.related.join(", ")||"—")}</p>
+        <p class="notice">Informational only. Brand availability varies by country. Do not substitute or change a prescribed medicine based on this list.</p>
+        <button class="btn secondary small" onclick="useMedicineName('${escapeHTML(m.name)}')">Use this medicine name</button>
+      </div>`).join(""):`<p class="muted">No medicine found. Try a generic name, alias, brand, symptom term, or category.</p>`;
+  };
 
+  /* ---------- Dashboard with repeat schedules ---------- */
+  const originalRenderDashboard=window.renderDashboard;
+  window.renderDashboard=function(){
+    const date=fmtDateLocal();
+    const due=window.getSMRDueMedicines(date);
+    if(!document.getElementById("patientCount")) return;
+    document.getElementById("patientCount").textContent=(patients||[]).length;
+    document.getElementById("medicineCount").textContent=(medicines||[]).length;
+    const low=(medicines||[]).filter(m=>Number(m.stock||0)<=Number(m.low_stock??5));
+    document.getElementById("lowStockCount").textContent=low.length;
+    const logs=(doseLogs||[]).filter(x=>x.log_date===date);
+    document.getElementById("todayLogCount").textContent=logs.length;
 
-  function getMedicine(id){
+    document.getElementById("todayMedicineList").innerHTML=due.length?due.sort((a,b)=>(a.time||"").localeCompare(b.time||"")).map(m=>`
+      <div class="item">
+        <div class="actions" style="justify-content:space-between">
+          <b>${escapeHTML(m.name)}</b><span class="smr-chip">${escapeHTML(m.time||"")}</span>
+        </div>
+        <p class="muted">${escapeHTML(patientName(m.patient_id))} · ${escapeHTML(m.dose||"")} ${escapeHTML(m.unit||"")} · ${escapeHTML(m.food||"")}</p>
+        <div class="actions">
+          <button class="btn success small" onclick="logDose('${m.id}','taken')">✓ Taken</button>
+          <button class="btn danger small" onclick="logDose('${m.id}','missed')">✕ Missed</button>
+        </div>
+      </div>`).join(""):`<p class="muted">No medicines scheduled today.</p>`;
 
-    return (window.medicines || [])
-      .find(m =>
-        String(m.id) === String(id)
-      );
+    const lowHtml=low.length?low.map(m=>`<div class="item">⚠️ <b>${escapeHTML(m.name)}</b><br><span class="muted">${escapeHTML(patientName(m.patient_id))} — Stock: ${escapeHTML(m.stock??0)}</span></div>`).join(""):`<div class="item success-box">No low-stock alerts.</div>`;
+    document.getElementById("dashboardAlerts").innerHTML=lowHtml;
 
+    const taken=logs.filter(x=>x.status==="taken").length, missed=logs.filter(x=>x.status==="missed").length, total=taken+missed;
+    const score=total?Math.round(taken/total*100):0;
+    document.getElementById("adherenceText").innerHTML=`<h2>${score}%</h2><p class="muted">${taken} taken / ${missed} missed today</p>`;
+    document.getElementById("adherenceBar").style.width=score+"%";
+
+    const recent=[...(visits||[])].sort((a,b)=>(b.visit_date||"").localeCompare(a.visit_date||"")).slice(0,5);
+    document.getElementById("treatmentJourney").innerHTML=recent.length?recent.map(v=>`<div class="item"><b>${escapeHTML(v.visit_date||"")}</b><br>${escapeHTML(patientName(v.patient_id))}<br><span class="muted">${escapeHTML(v.doctor||"")} · ${escapeHTML(v.reason||"")}</span></div>`).join(""):`<p class="muted">Add doctor visits to build the treatment journey.</p>`;
+  };
+
+  /* ---------- Reminder engine ---------- */
+  let reminderTimer=null;
+  let reminderQueue=[];
+  let snoozeUntil={};
+
+  function reminderKey(m){return "smr_notified_"+fmtDateLocal()+"_"+m.id+"_"+(m.time||"");}
+  function dueNow(){
+    const d=new Date();
+    const hh=String(d.getHours()).padStart(2,"0"), mm=String(d.getMinutes()).padStart(2,"0");
+    const current=hh+":"+mm;
+    return (window.getSMRDueMedicines(fmtDateLocal())||[]).filter(m=>(m.time||"")===current);
   }
-
-
-  /* =======================================================
-     SMART REMINDER
-  ======================================================= */
-
-  function getDueMedicines(){
-
-    if(!window.medicines) return [];
-
-    const now = new Date();
-
-    const current =
-      String(now.getHours()).padStart(2,"0")
-      + ":" +
-      String(now.getMinutes()).padStart(2,"0");
-
-    const date = localDate(now);
-
-    return medicines.filter(m => {
-
-      if(!m.time) return false;
-
-      if(m.time !== current) return false;
-
-      if(
-        m.start_date &&
-        m.start_date > date
-      ) return false;
-
-      if(
-        m.end_date &&
-        m.end_date < date
-      ) return false;
-
-      const snoozeKey =
-        "smr_snooze_" +
-        date +
-        "_" +
-        m.id;
-
-      const snoozeUntil =
-        Number(
-          localStorage.getItem(snoozeKey) || 0
-        );
-
-      if(
-        snoozeUntil &&
-        Date.now() < snoozeUntil
-      ){
-        return false;
-      }
-
+  function showReminderModal(meds){
+    if(!meds.length)return;
+    reminderQueue=meds;
+    const first=meds[0];
+    const html=`<div class="smr-reminder" id="smrReminderBox">
+      <button class="btn gray small" style="float:right" onclick="closeSMRReminder()">✕</button>
+      <h3>💊 Medicine Reminder</h3>
+      <p><b>${escapeHTML(first.name)}</b> — ${escapeHTML(first.dose||"")} ${escapeHTML(first.unit||"")}</p>
+      <p class="smr-muted">${escapeHTML(patientName(first.patient_id))} · ${escapeHTML(first.time||"")}</p>
+      ${meds.length>1?`<p><span class="smr-chip">${meds.length} medicines due now</span></p>`:""}
+      <div class="smr-actions">
+        ${meds.map(m=>`<button class="btn success small" onclick="smrTakeFromReminder('${escapeHTML(m.id)}')">✓ ${escapeHTML(m.name)}</button>`).join("")}
+      </div>
+      <div class="smr-snooze-row">
+        <button class="btn gray small" onclick="snoozeSMR(10)">Snooze 10m</button>
+        <button class="btn gray small" onclick="snoozeSMR(20)">Snooze 20m</button>
+        <button class="btn gray small" onclick="snoozeSMR(30)">Snooze 30m</button>
+      </div>
+      <p class="smr-muted">Reminder only. Follow the medicine and dose prescribed by the clinician.</p>
+    </div>`;
+    document.querySelectorAll("#smrReminderBox").forEach(x=>x.remove());
+    document.body.insertAdjacentHTML("beforeend",html);
+  }
+  window.closeSMRReminder=function(){document.getElementById("smrReminderBox")?.remove();};
+  window.smrTakeFromReminder=async function(id){
+    await logDose(id,"taken"); closeSMRReminder();
+  };
+  window.snoozeSMR=function(min){
+    reminderQueue.forEach(m=>snoozeUntil[m.id]=Date.now()+min*60000);
+    closeSMRReminder(); toast("Reminder snoozed for "+min+" minutes.");
+  };
+  async function checkReminders(){
+    if(!isApproved())return;
+    const meds=dueNow().filter(m=>{
+      const key=reminderKey(m);
+      if(localStorage.getItem(key))return false;
+      if(snoozeUntil[m.id] && Date.now()<snoozeUntil[m.id])return false;
       return true;
-
     });
-
+    if(!meds.length)return;
+    meds.forEach(m=>localStorage.setItem(reminderKey(m),"1"));
+    showReminderModal(meds);
+    if("Notification" in window && Notification.permission==="granted"){
+      meds.forEach(m=>{try{new Notification("💊 Medicine Reminder",{body:`${m.name} — ${m.dose||""} ${m.unit||""}`})}catch(e){}});}
   }
-
-
-  function showReminder(){
-
-    const due =
-      getDueMedicines();
-
-    if(!due.length) return;
-
-
-    const list =
-      document.getElementById(
-        "smrReminderList"
-      );
-
-    list.innerHTML =
-      due.map(m => `
-
-        <div class="smr-reminder-item">
-
-          <b>💊 ${escapeHTML(
-            m.name || "Medicine"
-          )}</b>
-
-          <br>
-
-          <span class="muted">
-
-            ${escapeHTML(
-              m.time || ""
-            )}
-
-            •
-
-            ${escapeHTML(
-              m.dose || ""
-            )}
-
-            ${escapeHTML(
-              m.unit || ""
-            )}
-
-          </span>
-
-          <br><br>
-
-          <button
-            class="btn success small"
-            data-reminder-taken="${m.id}">
-            ✓ Taken
-          </button>
-
-          <button
-            class="btn danger small"
-            data-reminder-missed="${m.id}">
-            ✕ Missed
-          </button>
-
-          <button
-            class="btn secondary small"
-            data-reminder-snooze="${m.id}">
-            ⏰ Snooze
-          </button>
-
-        </div>
-
-      `).join("");
-
-
-    list
-      .querySelectorAll(
-        "[data-reminder-taken]"
-      )
-      .forEach(btn => {
-
-        btn.onclick = async () => {
-
-          if(
-            typeof window.logDose ===
-            "function"
-          ){
-
-            await window.logDose(
-              btn.dataset.reminderTaken,
-              "taken"
-            );
-
-          }
-
-          showReminder();
-
-        };
-
-      });
-
-
-    list
-      .querySelectorAll(
-        "[data-reminder-missed]"
-      )
-      .forEach(btn => {
-
-        btn.onclick = async () => {
-
-          if(
-            typeof window.logDose ===
-            "function"
-          ){
-
-            await window.logDose(
-              btn.dataset.reminderMissed,
-              "missed"
-            );
-
-          }
-
-          showReminder();
-
-        };
-
-      });
-
-
-    list
-      .querySelectorAll(
-        "[data-reminder-snooze]"
-      )
-      .forEach(btn => {
-
-        btn.onclick = () => {
-
-          const minutes =
-            Number(
-              prompt(
-                "Snooze for how many minutes?",
-                "10"
-              )
-            );
-
-          if(
-            !minutes ||
-            minutes < 1
-          ) return;
-
-          const key =
-            "smr_snooze_" +
-            localDate(new Date()) +
-            "_" +
-            btn.dataset.reminderSnooze;
-
-          localStorage.setItem(
-            key,
-            String(
-              Date.now() +
-              minutes * 60000
-            )
-          );
-
-          showReminder();
-
-        };
-
-      });
-
-
-    reminderModal.style.display =
-      "flex";
-
-  }
-
-
-  /* Check every 30 seconds */
-
-  setInterval(
-    showReminder,
-    30000
-  );
-
-
-  /* First check */
-
-  setTimeout(
-    showReminder,
-    3000
-  );
-
-
-  document
-    .getElementById(
-      "smrReminderClose"
-    )
-    .onclick = () => {
-
-      reminderModal.style.display =
-        "none";
-
-    };
-
-
-  /* =======================================================
-     7-DAY ADHERENCE
-  ======================================================= */
-
-  function renderAdherence(){
-
-    const logs =
-      window.doseLogs || [];
-
-    const days = [];
-
-    for(
-      let i=6;
-      i>=0;
-      i--
-    ){
-
-      const d =
-        new Date();
-
-      d.setDate(
-        d.getDate() - i
-      );
-
-      const date =
-        localDate(d);
-
-      const dayLogs =
-        logs.filter(
-          x => x.log_date === date
-        );
-
-      const taken =
-        dayLogs.filter(
-          x => x.status === "taken"
-        ).length;
-
-      const missed =
-        dayLogs.filter(
-          x => x.status === "missed"
-        ).length;
-
-      const total =
-        taken + missed;
-
-      const rate =
-        total
-        ? Math.round(
-            taken / total * 100
-          )
-        : 0;
-
-      days.push({
-        date,
-        taken,
-        missed,
-        total,
-        rate
-      });
-
+  window.enableNotifications=async function(){
+    if(!("Notification" in window)){toast("This browser does not support notifications.");return;}
+    const p=await Notification.requestPermission();
+    if(p==="granted"){
+      toast("Notifications enabled.");
+      checkReminders();
+    }else toast("Notification permission was not granted.");
+  };
+
+  /* ---------- 7-day adherence ---------- */
+  window.showSevenDayAdherence=function(){
+    const days=[];
+    for(let i=6;i>=0;i--){
+      const d=addDays(fmtDateLocal(),-i);
+      const logs=(doseLogs||[]).filter(x=>x.log_date===d);
+      const taken=logs.filter(x=>x.status==="taken").length, missed=logs.filter(x=>x.status==="missed").length;
+      const total=taken+missed, pct=total?Math.round(taken/total*100):0;
+      days.push({d,taken,missed,pct});
     }
+    openModal("📊 7-Day Adherence",days.map(x=>`
+      <div class="item">
+        <div class="actions" style="justify-content:space-between"><b>${escapeHTML(x.d)}</b><span class="smr-chip">${x.pct}%</span></div>
+        <div class="progress"><span style="width:${x.pct}%"></span></div>
+        <p class="smr-muted">${x.taken} taken · ${x.missed} missed</p>
+      </div>`).join(""));
+  };
 
+  /* ---------- Dose history ---------- */
+  window.showSMRDoseHistory=function(){
+    const logs=[...(doseLogs||[])].sort((a,b)=>(b.log_date||"").localeCompare(a.log_date||""));
+    openModal("📋 Dose History",logs.length?logs.slice(0,100).map(l=>`<div class="item"><b>${escapeHTML(getMedicineName(l.medicine_id))}</b><br><span class="smr-muted">${escapeHTML(l.log_date||"")} · ${l.status==="taken"?"✓ Taken":"✕ Missed"}</span></div>`).join(""):`<p class="muted">No dose history yet.</p>`);
+  };
 
-    const totalTaken =
-      days.reduce(
-        (sum,d) =>
-          sum + d.taken,
-        0
-      );
+  /* ---------- Owner / caregiver controls ---------- */
+  function addCaregiverTools(){
+    const section=document.getElementById("caregiver");
+    if(!section || document.getElementById("smrOwnerTools"))return;
+    const card=document.createElement("div");
+    card.className="card";
+    card.id="smrOwnerTools";
+    card.style.marginTop="15px";
+    card.innerHTML=`<h2>🔐 Access & Privacy Controls</h2>
+      <p class="smr-muted">Owner approval controls who can use the account. Database RLS should also be enabled in Supabase for real security.</p>
+      <div class="smr-actions">
+        <button class="btn secondary small" onclick="openSMRAccessInfo()">View access rules</button>
+        <button class="btn gray small" onclick="toggleSmartDarkMode()">🌙 Dark mode</button>
+      </div>`;
+    section.appendChild(card);
+  }
+  window.openSMRAccessInfo=function(){
+    openModal("🔐 Owner / Caregiver Access",`
+      <div class="item"><b>Owner</b><br><span class="smr-muted">Can approve/deny caregiver accounts and manage records.</span></div>
+      <div class="item"><b>Caregiver</b><br><span class="smr-muted">Can use the patient/medicine tools only when the profile is approved.</span></div>
+      <div class="notice">For true security, Supabase Row Level Security policies must enforce ownership server-side. UI hiding alone is not security.</div>
+    `);
+  };
 
-    const totalMissed =
-      days.reduce(
-        (sum,d) =>
-          sum + d.missed,
-        0
-      );
+  /* ---------- Auth: Google + Phone OTP ---------- */
+  function addAdvancedAuth(){
+    const btn=document.getElementById("authButton");
+    if(!btn || document.getElementById("smrAuthExtra"))return;
+    const wrap=document.createElement("div");
+    wrap.id="smrAuthExtra";
+    wrap.className="smr-panel";
+    wrap.innerHTML=`
+      <div class="smr-actions">
+        <button class="btn secondary" onclick="loginWithGoogle()">Continue with Google</button>
+        <button class="btn gray" onclick="openPhoneLogin()">📱 Phone OTP</button>
+        <button class="btn gray" onclick="sendPasswordReset()">Forgot password?</button>
+      </div>
+      <p class="smr-muted">Google OAuth and Phone OTP must be enabled/configured in your Supabase Authentication settings.</p>`;
+    btn.parentElement.appendChild(wrap);
+  }
+  window.loginWithGoogle=async function(){
+    if(!initSupabase()){toast("Save Cloud Settings first.");return;}
+    const {error}=await supabaseClient.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.href}});
+    if(error)toast(error.message);
+  };
+  window.openPhoneLogin=function(){
+    openModal("📱 Phone Login",`
+      <div class="field"><label>Phone number</label><input id="smrPhone" placeholder="+91XXXXXXXXXX"></div>
+      <br><button class="btn" onclick="sendPhoneOTP()">Send OTP</button>
+      <hr>
+      <div class="field"><label>OTP</label><input id="smrOTP" inputmode="numeric" maxlength="8" placeholder="Enter OTP"></div>
+      <br><button class="btn secondary" onclick="verifyPhoneOTP()">Verify OTP</button>
+      <p class="smr-muted">Supabase Phone Auth/SMS provider must be enabled first.</p>`);
+  };
+  window.sendPhoneOTP=async function(){
+    if(!initSupabase()){toast("Save Cloud Settings first.");return;}
+    const phone=document.getElementById("smrPhone")?.value.trim();
+    if(!phone){toast("Enter phone number.");return;}
+    const {error}=await supabaseClient.auth.signInWithOtp({phone});
+    if(error)toast(error.message);else toast("OTP sent.");
+  };
+  window.verifyPhoneOTP=async function(){
+    if(!initSupabase())return;
+    const phone=document.getElementById("smrPhone")?.value.trim(), token=document.getElementById("smrOTP")?.value.trim();
+    if(!phone||!token){toast("Enter phone and OTP.");return;}
+    const {data,error}=await supabaseClient.auth.verifyOtp({phone,token,type:"sms"});
+    if(error){toast(error.message);return;}
+    closeModal(); await startApplication(data.user);
+  };
+  window.sendPasswordReset=async function(){
+    if(!initSupabase()){toast("Save Cloud Settings first.");return;}
+    const email=document.getElementById("authEmail")?.value.trim();
+    if(!email){toast("Enter your email first.");return;}
+    const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.href});
+    if(error)toast(error.message);else toast("Password reset link sent.");
+  };
 
-    const total =
-      totalTaken +
-      totalMissed;
+  /* ---------- Privacy-aware delete patient confirmation ---------- */
+  const originalDeletePatient=window.deletePatient;
+  window.deletePatient=async function(id){
+    if(!isOwner() && currentProfile?.role==="caregiver"){toast("Only the owner can delete a patient.");return;}
+    const p=(patients||[]).find(x=>x.id===id);
+    if(!p)return;
+    const ok=confirm(`Delete patient "${p.name}"?\\n\\nThis action cannot be undone from the app.`);
+    if(!ok)return;
+    await originalDeletePatient(id);
+  };
 
-    const overall =
-      total
-      ? Math.round(
-          totalTaken /
-          total * 100
-        )
-      : 0;
+  /* ---------- Render refresh ---------- */
+  const originalLoadAll=window.loadAll;
+  window.loadAll=async function(){
+    await originalLoadAll();
+    applySmartLanguage();
+    addCaregiverTools();
+    addAdvancedAuth();
+    if(typeof renderFinder==="function") renderFinder();
+  };
 
-
-    document
-      .getElementById(
-        "smrAdherenceSummary"
-      )
-      .innerHTML = `
-
-        <h3>
-          Overall: ${overall}%
-        </h3>
-
-        <p class="muted">
-
-          ✓ Taken:
-          <b>${totalTaken}</b>
-
-          &nbsp;&nbsp;
-
-          ✕ Missed:
-          <b>${totalMissed}</b>
-
-        </p>
-
-      `;
-
-
-    document
-      .getElementById(
-        "smrAdherenceDays"
-      )
-      .innerHTML =
-      days.map(d => `
-
-        <div class="smr-day">
-
-          <div style="width:90px">
-            <b>${d.date.slice(5)}</b>
-          </div>
-
-          <div class="smr-bar">
-
-            <div
-              class="smr-bar-fill"
-              style="width:${d.rate}%">
-            </div>
-
-          </div>
-
-          <div>
-            ${d.rate}%
-          </div>
-
-        </div>
-
-      `).join("");
-
+  /* ---------- Startup ---------- */
+  function addFloatingTools(){
+    if(document.getElementById("smrFloatingTools"))return;
+    const box=document.createElement("div");
+    box.id="smrFloatingTools";
+    box.style.cssText="position:fixed;left:12px;bottom:12px;z-index:9990;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100vw - 24px)";
+    box.innerHTML=`
+      <button class="btn gray small" onclick="openRepeatManager()">🔁 Repeat</button>
+      <button class="btn gray small" onclick="showSMRDoseHistory()">📋 History</button>
+      <button class="btn gray small" onclick="showSevenDayAdherence()">📊 7-Day</button>
+      <button class="btn gray small" onclick="toggleSmartDarkMode()">🌙</button>`;
+    document.body.appendChild(box);
   }
 
-
-  document
-    .getElementById(
-      "smrAdherenceBtn"
-    )
-    .onclick = () => {
-
-      renderAdherence();
-
-      adherenceModal.style.display =
-        "flex";
-
-    };
-
-
-  document
-    .getElementById(
-      "smrAdherenceClose"
-    )
-    .onclick = () => {
-
-      adherenceModal.style.display =
-        "none";
-
-    };
-
-
-  /* =======================================================
-     LOW STOCK ALERT
-  ======================================================= */
-
-  function checkLowStock(){
-
-    if(!window.medicines) return;
-
-
-    const low =
-      medicines.filter(m =>
-
-        Number(m.stock || 0)
-        <=
-        Number(m.low_stock ?? 5)
-
-      );
-
-
-    if(!low.length) return;
-
-
-    const names =
-      low.map(
-        m =>
-          escapeHTML(
-            m.name || "Medicine"
-          )
-      );
-
-
-    stockAlert.innerHTML = `
-
-      <b>⚠️ Low Stock Alert</b>
-
-      <br><br>
-
-      ${names.join("<br>")}
-
-      <br><br>
-
-      <button
-        id="closeStockAlert"
-        class="btn small">
-
-        Close
-
-      </button>
-
-    `;
-
-
-    stockAlert.style.display =
-      "block";
-
-
-    document
-      .getElementById(
-        "closeStockAlert"
-      )
-      .onclick = () => {
-
-        stockAlert.style.display =
-          "none";
-
-      };
-
+  function startFeatureLayer(){
+    applyTheme();
+    addFloatingTools();
+    addAdvancedAuth();
+    applySmartLanguage();
+    setInterval(checkReminders,15000);
+    setTimeout(checkReminders,1500);
   }
 
-
-  setTimeout(
-    checkLowStock,
-    4000
-  );
-
-
-  /* =======================================================
-     DARK MODE
-  ======================================================= */
-
-  const savedTheme =
-    localStorage.getItem(
-      "smr_theme"
-    );
-
-
-  if(savedTheme === "dark"){
-
-    document.body.classList.add(
-      "smr-dark"
-    );
-
-  }
-
-
-  document
-    .getElementById(
-      "smrDarkBtn"
-    )
-    .onclick = () => {
-
-      document.body.classList.toggle(
-        "smr-dark"
-      );
-
-
-      const dark =
-        document.body.classList.contains(
-          "smr-dark"
-        );
-
-
-      localStorage.setItem(
-        "smr_theme",
-        dark
-        ? "dark"
-        : "light"
-      );
-
-
-      document
-        .getElementById(
-          "smrDarkBtn"
-        )
-        .textContent =
-          dark
-          ? "☀️ Light Mode"
-          : "🌙 Dark Mode";
-
-    };
-
-
-  /* =======================================================
-     CLOSE MODALS BY BACKDROP
-  ======================================================= */
-
-  reminderModal.addEventListener(
-    "click",
-    e => {
-
-      if(e.target === reminderModal){
-
-        reminderModal.style.display =
-          "none";
-
-      }
-
-    }
-  );
-
-
-  adherenceModal.addEventListener(
-    "click",
-    e => {
-
-      if(e.target === adherenceModal){
-
-        adherenceModal.style.display =
-          "none";
-
-      }
-
-    }
-  );
-
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",startFeatureLayer);
+  }else startFeatureLayer();
 
 })();
+</script>
+
+<script>
+/* =========================================================
+   PWA SERVICE WORKER
+   This caches the app shell when sw.js exists.
+   Browser/OS support for true closed-app scheduled alarms
+   is platform dependent; the page reminder remains the
+   reliable foreground fallback.
+========================================================= */
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("./sw.js").catch(()=>{});
+}
 </script>
 </body>
 </html>
