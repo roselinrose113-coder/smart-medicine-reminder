@@ -539,10 +539,6 @@ Patients
 Medicines
 </button>
 
-<button class="btn tab" data-tab="smartReminders">
-🔔 Smart Reminders
-</button>
-
 <button class="btn tab" data-tab="calendar">
 Calendar
 </button>
@@ -785,36 +781,6 @@ All patients
 
 </section>
 
-<!-- SMART REMINDERS / NEW FEATURES -->
-<section id="smartReminders" class="page hidden">
-<div class="grid">
-<div class="card col12">
-<h2>🔔 Smart Medicine Reminders</h2>
-<p class="muted">Browser reminders, Taken/Missed history, and Daily/Weekly repeat settings.</p>
-<div class="actions">
-<button class="btn" onclick="enableMedicineNotifications()">🔔 Enable Notifications</button>
-<span id="notificationStatus" class="badge">Not enabled</span>
-</div>
-<p id="nextReminderText" class="muted"></p>
-</div>
-<div class="card col6">
-<h3>📜 Taken / Missed History</h3>
-<div class="form-grid">
-<div class="field"><label>History filter</label><select id="historyFilter" onchange="renderSmartFeatures()"><option value="all">All</option><option value="taken">Taken</option><option value="missed">Missed</option></select></div>
-<div class="field"><label>Date</label><input id="historyDate" type="date" onchange="renderSmartFeatures()"></div>
-</div><br>
-<div id="medicineHistoryList" class="list"></div>
-</div>
-<div class="card col6">
-<h3>🔄 Daily / Weekly Repeat</h3>
-<p class="muted">Repeat preferences are saved on this device.</p>
-<div class="field"><label>Medicine</label><select id="repeatMedicine" onchange="loadRepeatSetting()"></select></div><br>
-<div class="field"><label>Repeat</label><select id="repeatType"><option value="none">No repeat</option><option value="daily">Daily</option><option value="weekly">Weekly</option></select></div><br>
-<button class="btn" onclick="saveRepeatSetting()">Save Repeat</button>
-<span id="repeatStatus" class="muted"></span>
-</div>
-</div>
-</section>
 
 <!-- CALENDAR -->
 
@@ -1172,8 +1138,6 @@ let deletedMedicine=null;
 let undoInterval=null;
 
 let deferredPrompt=null;
-let reminderTimer=null;
-let reminderShownToday=JSON.parse(localStorage.getItem("smr_reminder_shown") || "{}");
 
 let authMode="login";
 
@@ -1445,7 +1409,6 @@ async function startApplication(user){
   showTab("dashboard");
 
   registerServiceWorker();
-  startReminderTimer();
 
 }
 
@@ -1544,100 +1507,9 @@ function renderEverything(){
   renderReport();
 
   renderCaregiver();
-  renderSmartFeatures();
 
 }
 
-
-/* =========================================================
-   NEW FEATURES: SMART REMINDERS / HISTORY / REPEAT
-========================================================= */
-
-function repeatSettings(){
-  try{return JSON.parse(localStorage.getItem("smr_repeat_settings") || "{}");}
-  catch(e){return {};}
-}
-
-function enableMedicineNotifications(){
-  if(!("Notification" in window)){toast("This browser does not support notifications.");return;}
-  Notification.requestPermission().then(permission=>{
-    updateNotificationStatus();
-    if(permission==="granted"){toast("Medicine reminders enabled.");checkMedicineReminders();}
-    else toast("Notifications were not allowed.");
-  });
-}
-
-function updateNotificationStatus(){
-  const el=$("notificationStatus"); if(!el)return;
-  const p=("Notification" in window)?Notification.permission:"unsupported";
-  el.textContent=p==="granted"?"Notifications enabled":p==="denied"?"Notifications blocked":p==="unsupported"?"Not supported":"Not enabled";
-}
-
-function reminderKey(m){return today()+"_"+m.id+"_"+(m.time||"");}
-
-function checkMedicineReminders(){
-  updateNotificationStatus();
-  if(!currentUser || !("Notification" in window) || Notification.permission!=="granted")return;
-  const now=new Date(), hhmm=now.toTimeString().slice(0,5), settings=repeatSettings();
-  const active=medicines.filter(m=>(!m.start_date||m.start_date<=today())&&(!m.end_date||m.end_date>=today())&&m.time);
-  active.filter(m=>{
-    const repeat=settings[m.id]||"daily";
-    if(repeat==="weekly"){
-      const start=m.start_date?new Date(m.start_date+"T00:00:00"):new Date();
-      const days=Math.floor((new Date(today()+"T00:00:00")-start)/86400000);
-      return days>=0 && days%7===0;
-    }
-    return repeat!=="none" || !settings[m.id];
-  }).filter(m=>m.time.slice(0,5)===hhmm).forEach(m=>{
-    const key=reminderKey(m); if(reminderShownToday[key])return;
-    new Notification("💊 Medicine Reminder",{body:`${m.name} — ${m.dose||"Take your prescribed dose"}${m.food?" • "+m.food:""}`});
-    reminderShownToday[key]=true;
-    localStorage.setItem("smr_reminder_shown",JSON.stringify(reminderShownToday));
-  });
-  const next=active.sort((a,b)=>a.time.localeCompare(b.time))[0];
-  if($("nextReminderText"))$("nextReminderText").textContent=next?`Next scheduled medicine time: ${next.time} — ${next.name}`:"No medicine time is scheduled.";
-}
-
-function renderMedicineHistory(){
-  const list=$("medicineHistoryList"); if(!list)return;
-  const filter=$("historyFilter")?.value||"all", date=$("historyDate")?.value||today();
-  const rows=doseLogs.filter(x=>x.log_date===date&&(filter==="all"||x.status===filter)).sort((a,b)=>(b.created_at||"").localeCompare(a.created_at||""));
-  list.innerHTML=rows.length?rows.map(x=>{
-    const m=medicines.find(item=>item.id===x.medicine_id);
-    return `<div class="item"><b>${escapeHTML(m?.name||"Medicine")}</b><p class="muted">${escapeHTML(m?.dose||"")} ${escapeHTML(m?.unit||"")} • ${escapeHTML(patientName(m?.patient_id))}</p><span class="badge ${x.status==="taken"?"success":"danger"}">${escapeHTML(x.status)}</span></div>`;
-  }).join(""):"<p class='muted'>No dose history for this date.</p>";
-}
-
-function renderRepeatOptions(){
-  const select=$("repeatMedicine"); if(!select)return;
-  const old=select.value;
-  select.innerHTML=`<option value="">Select medicine</option>`+medicines.map(m=>`<option value="${escapeHTML(m.id)}">${escapeHTML(m.name)} — ${escapeHTML(patientName(m.patient_id))}</option>`).join("");
-  if(old&&medicines.some(m=>m.id===old))select.value=old; else if(medicines[0])select.value=medicines[0].id;
-  loadRepeatSetting();
-}
-
-function loadRepeatSetting(){
-  const id=$("repeatMedicine")?.value,type=$("repeatType"); if(!id||!type)return;
-  type.value=repeatSettings()[id]||"daily";
-}
-
-function saveRepeatSetting(){
-  const id=$("repeatMedicine")?.value,type=$("repeatType")?.value;
-  if(!id){toast("Select a medicine first.");return;}
-  const settings=repeatSettings(); settings[id]=type;
-  localStorage.setItem("smr_repeat_settings",JSON.stringify(settings));
-  if($("repeatStatus"))$("repeatStatus").textContent=" Saved on this device.";
-  toast("Repeat setting saved.");
-}
-
-function renderSmartFeatures(){
-  updateNotificationStatus();renderMedicineHistory();renderRepeatOptions();checkMedicineReminders();
-}
-
-function startReminderTimer(){
-  if(reminderTimer)clearInterval(reminderTimer);
-  reminderTimer=setInterval(checkMedicineReminders,30000);checkMedicineReminders();
-}
 
 /* =========================================================
    TABS
@@ -4924,7 +4796,6 @@ $("cloudKey").value=
 
 
 $("calendarDate").value=today();
-if($("historyDate"))$("historyDate").value=today();
 
 $("reportMonth").value=
   today().slice(0,7);
@@ -4954,6 +4825,2487 @@ $("reportMonth").value=
 })();
 
 </script>
+<script>
+/* =========================================================
+   SMART MEDICINE REMINDER+ ENHANCEMENT PACK
+   Multi-language + Smart Related Medicine Search
+========================================================= */
 
+(function () {
+
+  /* ---------- MULTI LANGUAGE ---------- */
+
+  const LANG = {
+    en: {
+      dashboard: "Dashboard",
+      patients: "Patients",
+      medicines: "Medicines",
+      calendar: "Calendar",
+      visits: "Doctor Visits",
+      refills: "Refills",
+      emergency: "Emergency",
+      documents: "Documents",
+      finder: "Medicine Finder",
+      reports: "Reports",
+      backup: "Backup",
+      caregiver: "Caregiver",
+      searchMedicine: "Search medicine",
+      allPatients: "All patients",
+      todayMedicines: "Today's Medicines",
+      notifications: "🔔 Notifications",
+      logout: "Logout",
+      addMedicine: "+ Add Medicine"
+    },
+
+    ta: {
+      dashboard: "முகப்பு",
+      patients: "நோயாளிகள்",
+      medicines: "மருந்துகள்",
+      calendar: "மருந்து நாட்காட்டி",
+      visits: "மருத்துவர் சந்திப்புகள்",
+      refills: "மருந்து இருப்பு",
+      emergency: "அவசர தகவல்",
+      documents: "மருத்துவ ஆவணங்கள்",
+      finder: "மருந்து தேடல்",
+      reports: "அறிக்கைகள்",
+      backup: "Backup",
+      caregiver: "பராமரிப்பாளர்",
+      searchMedicine: "மருந்தை தேடுங்கள்",
+      allPatients: "அனைத்து நோயாளிகள்",
+      todayMedicines: "இன்றைய மருந்துகள்",
+      notifications: "🔔 அறிவிப்புகள்",
+      logout: "வெளியேறு",
+      addMedicine: "+ மருந்து சேர்க்க"
+    },
+
+    hi: {
+      dashboard: "डैशबोर्ड",
+      patients: "मरीज़",
+      medicines: "दवाइयाँ",
+      calendar: "दवा कैलेंडर",
+      visits: "डॉक्टर विज़िट",
+      refills: "रिफिल",
+      emergency: "आपातकाल",
+      documents: "मेडिकल दस्तावेज़",
+      finder: "दवा खोजें",
+      reports: "रिपोर्ट",
+      backup: "बैकअप",
+      caregiver: "देखभालकर्ता",
+      searchMedicine: "दवा खोजें",
+      allPatients: "सभी मरीज़",
+      todayMedicines: "आज की दवाइयाँ",
+      notifications: "🔔 सूचनाएँ",
+      logout: "लॉगआउट",
+      addMedicine: "+ दवा जोड़ें"
+    },
+
+    ml: {
+      dashboard: "ഡാഷ്ബോർഡ്",
+      patients: "രോഗികൾ",
+      medicines: "മരുന്നുകൾ",
+      calendar: "മരുന്ന് കലണ്ടർ",
+      visits: "ഡോക്ടർ സന്ദർശനങ്ങൾ",
+      refills: "റീഫിൽ",
+      emergency: "അടിയന്തര വിവരം",
+      documents: "മെഡിക്കൽ രേഖകൾ",
+      finder: "മരുന്ന് തിരയുക",
+      reports: "റിപ്പോർട്ടുകൾ",
+      backup: "ബാക്കപ്പ്",
+      caregiver: "പരിചരിക്കുന്നവർ",
+      searchMedicine: "മരുന്ന് തിരയുക",
+      allPatients: "എല്ലാ രോഗികളും",
+      todayMedicines: "ഇന്നത്തെ മരുന്നുകൾ",
+      notifications: "🔔 അറിയിപ്പുകൾ",
+      logout: "ലോഗൗട്ട്",
+      addMedicine: "+ മരുന്ന് ചേർക്കുക"
+    }
+  };
+
+
+  let appLanguage =
+    localStorage.getItem("smr_language")
+    || "en";
+
+
+  function setAppLanguage(lang) {
+
+    if (!LANG[lang]) return;
+
+    appLanguage = lang;
+
+    localStorage.setItem(
+      "smr_language",
+      lang
+    );
+
+    updateLanguageButton();
+
+    translateNavigation();
+
+    translateMedicineSearch();
+
+    toast(
+      lang === "ta"
+        ? "மொழி மாற்றப்பட்டது"
+        : lang === "hi"
+        ? "भाषा बदल दी गई"
+        : lang === "ml"
+        ? "ഭാഷ മാറ്റി"
+        : "Language changed"
+    );
+  }
+
+
+  function updateLanguageButton() {
+
+    const buttons =
+      document.querySelectorAll(
+        "button[onclick*='toggleLanguage']"
+      );
+
+    const names = {
+      en: "🌐 English",
+      ta: "🌐 தமிழ்",
+      hi: "🌐 हिन्दी",
+      ml: "🌐 മലയാളം"
+    };
+
+    buttons.forEach(btn => {
+      btn.textContent =
+        names[appLanguage];
+    });
+  }
+
+
+  function translateNavigation() {
+
+    const keyMap = {
+      dashboard: "dashboard",
+      patients: "patients",
+      medicines: "medicines",
+      calendar: "calendar",
+      visits: "visits",
+      refills: "refills",
+      emergency: "emergency",
+      documents: "documents",
+      finder: "finder",
+      reports: "reports",
+      backup: "backup",
+      caregiver: "caregiver"
+    };
+
+    document
+      .querySelectorAll(".tab")
+      .forEach(button => {
+
+        const tab =
+          button.dataset.tab;
+
+        if (
+          keyMap[tab] &&
+          LANG[appLanguage][keyMap[tab]]
+        ) {
+
+          button.textContent =
+            LANG[appLanguage][keyMap[tab]];
+        }
+      });
+
+
+    document
+      .querySelectorAll(
+        "#medicineSearch"
+      )
+      .forEach(input => {
+
+        input.placeholder =
+          LANG[appLanguage]
+            .searchMedicine;
+      });
+
+
+    const patientFilter =
+      document.getElementById(
+        "medicinePatientFilter"
+      );
+
+    if (patientFilter) {
+
+      const first =
+        patientFilter.options[0];
+
+      if (first) {
+
+        first.textContent =
+          LANG[appLanguage]
+            .allPatients;
+      }
+    }
+  }
+
+
+  function translateMedicineSearch() {
+
+    const input =
+      document.getElementById(
+        "finderSearch"
+      );
+
+    if (input) {
+
+      input.placeholder =
+        LANG[appLanguage]
+          .searchMedicine;
+    }
+  }
+
+
+  /* ---------- LANGUAGE SELECTOR ---------- */
+
+  function openLanguageMenu() {
+
+    const choices = [
+      ["en", "🇬🇧 English"],
+      ["ta", "🇮🇳 தமிழ்"],
+      ["hi", "🇮🇳 हिन्दी"],
+      ["ml", "🇮🇳 മലയാളം"]
+    ];
+
+    openModal(
+      "🌐 Select Language",
+
+      `
+      <div class="list">
+
+        ${choices.map(item => `
+
+          <button
+            class="btn secondary"
+            style="width:100%;margin-bottom:8px"
+            onclick="window.SMRSetLanguage('${item[0]}')">
+
+            ${item[1]}
+
+          </button>
+
+        `).join("")}
+
+      </div>
+      `
+    );
+  }
+
+
+  window.SMRSetLanguage =
+    function(lang) {
+
+      setAppLanguage(lang);
+
+      closeModal();
+
+      applyLanguage();
+    };
+
+
+  /* Replace old 2-language toggle safely */
+  window.toggleLanguage =
+    function() {
+      openLanguageMenu();
+    };
+
+
+  /* ---------- SMART MEDICINE CATALOG ---------- */
+
+  const SMART_MEDICINES = [
+
+    {
+      name: "Paracetamol",
+      aliases: [
+        "acetaminophen",
+        "crocin",
+        "calpol",
+        "dolo"
+      ],
+      related: [
+        "Acetaminophen"
+      ],
+      category: "Pain / Fever"
+    },
+
+    {
+      name: "Ibuprofen",
+      aliases: [
+        "advil",
+        "motrin"
+      ],
+      related: [
+        "Naproxen",
+        "Diclofenac"
+      ],
+      category: "Pain / Inflammation"
+    },
+
+    {
+      name: "Amoxicillin",
+      aliases: [
+        "amoxil",
+        "amox"
+      ],
+      related: [
+        "Amoxicillin + Clavulanate"
+      ],
+      category: "Antibiotic"
+    },
+
+    {
+      name: "Azithromycin",
+      aliases: [
+        "azithro"
+      ],
+      related: [
+        "Clarithromycin",
+        "Erythromycin"
+      ],
+      category: "Antibiotic"
+    },
+
+    {
+      name: "Cetirizine",
+      aliases: [
+        "zyrtec",
+        "cetirizine hcl"
+      ],
+      related: [
+        "Levocetirizine",
+        "Loratadine"
+      ],
+      category: "Allergy"
+    },
+
+    {
+      name: "Levocetirizine",
+      aliases: [
+        "levocet",
+        "xyzal"
+      ],
+      related: [
+        "Cetirizine",
+        "Loratadine"
+      ],
+      category: "Allergy"
+    },
+
+    {
+      name: "Omeprazole",
+      aliases: [
+        "omeprazol"
+      ],
+      related: [
+        "Pantoprazole",
+        "Esomeprazole"
+      ],
+      category: "Acid reduction"
+    },
+
+    {
+      name: "Pantoprazole",
+      aliases: [
+        "pantoprazol"
+      ],
+      related: [
+        "Omeprazole",
+        "Esomeprazole"
+      ],
+      category: "Acid reduction"
+    },
+
+    {
+      name: "Metformin",
+      aliases: [
+        "glucophage"
+      ],
+      related: [
+        "Metformin extended release"
+      ],
+      category: "Diabetes"
+    },
+
+    {
+      name: "Amlodipine",
+      aliases: [
+        "amlodipine besylate"
+      ],
+      related: [
+        "Losartan",
+        "Telmisartan"
+      ],
+      category: "Blood pressure"
+    },
+
+    {
+      name: "Losartan",
+      aliases: [
+        "losartan potassium"
+      ],
+      related: [
+        "Amlodipine",
+        "Telmisartan"
+      ],
+      category: "Blood pressure"
+    },
+
+    {
+      name: "Telmisartan",
+      aliases: [
+        "telmisartan"
+      ],
+      related: [
+        "Losartan",
+        "Amlodipine"
+      ],
+      category: "Blood pressure"
+    },
+
+    {
+      name: "Atorvastatin",
+      aliases: [
+        "atorvastatin calcium"
+      ],
+      related: [
+        "Rosuvastatin"
+      ],
+      category: "Cholesterol"
+    },
+
+    {
+      name: "Rosuvastatin",
+      aliases: [
+        "rosuvastatin calcium"
+      ],
+      related: [
+        "Atorvastatin"
+      ],
+      category: "Cholesterol"
+    },
+
+    {
+      name: "Ondansetron",
+      aliases: [
+        "ondansetron hcl"
+      ],
+      related: [
+        "Domperidone"
+      ],
+      category: "Nausea / Vomiting"
+    },
+
+    {
+      name: "Montelukast",
+      aliases: [
+        "montelukast sodium"
+      ],
+      related: [
+        "Montelukast + Levocetirizine"
+      ],
+      category: "Allergy / Respiratory"
+    }
+
+  ];
+
+
+  /* ---------- FUZZY SEARCH ---------- */
+
+  function smartMedicineSearch(query) {
+
+    query =
+      String(query || "")
+        .trim()
+        .toLowerCase();
+
+    if (!query) {
+
+      return SMART_MEDICINES;
+    }
+
+
+    return SMART_MEDICINES
+      .map(medicine => {
+
+        const main =
+          medicine.name
+            .toLowerCase();
+
+        const aliases =
+          medicine.aliases
+            .join(" ")
+            .toLowerCase();
+
+        const related =
+          medicine.related
+            .join(" ")
+            .toLowerCase();
+
+        let score = 0;
+
+        if (main === query)
+          score += 100;
+
+        if (main.startsWith(query))
+          score += 70;
+
+        if (main.includes(query))
+          score += 50;
+
+        if (aliases.includes(query))
+          score += 40;
+
+        if (related.includes(query))
+          score += 25;
+
+        return {
+          medicine,
+          score
+        };
+
+      })
+
+      .filter(x => x.score > 0)
+
+      .sort(
+        (a,b) =>
+          b.score - a.score
+      )
+
+      .map(x => x.medicine);
+  }
+
+
+  window.renderFinder =
+    function() {
+
+      const input =
+        document.getElementById(
+          "finderSearch"
+        );
+
+      const list =
+        document.getElementById(
+          "finderList"
+        );
+
+      if (!input || !list)
+        return;
+
+
+      const query =
+        input.value;
+
+
+      const results =
+        smartMedicineSearch(query);
+
+
+      if (!results.length) {
+
+        list.innerHTML = `
+
+          <div class="item">
+
+            <b>
+              ${
+                appLanguage === "ta"
+                ? "மருந்து கிடைக்கவில்லை"
+                : appLanguage === "hi"
+                ? "दवा नहीं मिली"
+                : appLanguage === "ml"
+                ? "മരുന്ന് കണ്ടെത്തിയില്ല"
+                : "No medicine found"
+              }
+            </b>
+
+            <p class="muted">
+              ${
+                appLanguage === "ta"
+                ? "வேறு பெயர் அல்லது generic name முயற்சி செய்யுங்கள்."
+                : appLanguage === "hi"
+                ? "दूसरा नाम या generic name आज़माएँ."
+                : appLanguage === "ml"
+                ? "മറ്റൊരു പേര് അല്ലെങ്കിൽ generic name ശ്രമിക്കുക."
+                : "Try another name or generic name."
+              }
+            </p>
+
+          </div>
+
+        `;
+
+        return;
+      }
+
+
+      list.innerHTML =
+        results.map(m => `
+
+          <div class="item">
+
+            <h3>
+              💊 ${escapeHTML(m.name)}
+            </h3>
+
+            <p>
+              <b>Category:</b>
+              ${escapeHTML(m.category)}
+            </p>
+
+            <p>
+              <b>Related:</b>
+              ${escapeHTML(
+                m.related.join(", ")
+              )}
+            </p>
+
+            <p class="muted">
+              ${
+                appLanguage === "ta"
+                ? "இது தகவல் தேடலுக்காக மட்டுமே. மருத்துவர் பரிந்துரையை மாற்றாது."
+                : appLanguage === "hi"
+                ? "यह केवल जानकारी के लिए है और डॉक्टर की सलाह का विकल्प नहीं है."
+                : appLanguage === "ml"
+                ? "ഇത് വിവര ആവശ്യങ്ങൾക്ക് മാത്രം. ഡോക്ടറുടെ നിർദ്ദേശത്തിന് പകരമല്ല."
+                : "Information only. It does not replace a doctor's prescription."
+              }
+            </p>
+
+            <button
+              class="btn secondary small"
+              onclick='useMedicineName(${JSON.stringify(m.name)})'>
+
+              ${
+                appLanguage === "ta"
+                ? "இந்த பெயரை பயன்படுத்தவும்"
+                : appLanguage === "hi"
+                ? "यह नाम उपयोग करें"
+                : appLanguage === "ml"
+                ? "ഈ പേര് ഉപയോഗിക്കുക"
+                : "Use this medicine name"
+              }
+
+            </button>
+
+          </div>
+
+        `).join("");
+  };
+
+
+  /* ---------- INITIALISE ---------- */
+
+  setTimeout(() => {
+
+    updateLanguageButton();
+
+    translateNavigation();
+
+    translateMedicineSearch();
+
+    const finder =
+      document.getElementById(
+        "finderSearch"
+      );
+
+    if (finder) {
+
+      finder.addEventListener(
+        "input",
+        window.renderFinder
+      );
+
+    }
+
+  }, 500);
+
+
+})();
+</script>
+<script>
+/* =========================================================
+   DOSE HISTORY - TAKEN / MISSED
+========================================================= */
+
+(function(){
+
+  const style = document.createElement("style");
+  style.textContent = `
+    #doseHistoryBtn{
+      position:fixed;
+      right:20px;
+      bottom:20px;
+      z-index:9998;
+      border:none;
+      border-radius:25px;
+      padding:12px 18px;
+      cursor:pointer;
+      font-weight:700;
+      box-shadow:0 4px 15px rgba(0,0,0,.2);
+    }
+
+    #doseHistoryModal{
+      display:none;
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.55);
+      z-index:9999;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+
+    #doseHistoryBox{
+      width:min(700px,95vw);
+      max-height:85vh;
+      overflow:auto;
+      background:white;
+      border-radius:18px;
+      padding:20px;
+    }
+
+    #doseHistoryBox h2{
+      margin-top:0;
+    }
+
+    .dose-history-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      padding:12px;
+      margin:8px 0;
+      border-radius:12px;
+      background:#f5f5f5;
+    }
+
+    .dose-taken{
+      color:#16833b;
+      font-weight:700;
+    }
+
+    .dose-missed{
+      color:#c62828;
+      font-weight:700;
+    }
+
+    #doseHistoryClose{
+      float:right;
+      border:none;
+      background:#eee;
+      border-radius:50%;
+      width:34px;
+      height:34px;
+      cursor:pointer;
+      font-size:18px;
+    }
+
+    #doseHistoryDate{
+      padding:9px;
+      border-radius:8px;
+      border:1px solid #ccc;
+      margin:10px 0;
+    }
+  `;
+
+  document.head.appendChild(style);
+
+  const btn = document.createElement("button");
+  btn.id = "doseHistoryBtn";
+  btn.innerHTML = "📋 Dose History";
+  document.body.appendChild(btn);
+
+  const modal = document.createElement("div");
+  modal.id = "doseHistoryModal";
+
+  modal.innerHTML = `
+    <div id="doseHistoryBox">
+
+      <button id="doseHistoryClose">✕</button>
+
+      <h2>📋 Dose History</h2>
+
+      <label><b>Select Date:</b></label><br>
+
+      <input
+        type="date"
+        id="doseHistoryDate"
+      >
+
+      <div id="doseHistorySummary"></div>
+
+      <div id="doseHistoryList">
+        Loading...
+      </div>
+
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  function getMedicineName(id){
+    const medicine = (window.medicines || []).find(
+      m => String(m.id) === String(id)
+    );
+
+    return medicine ? medicine.name : "Medicine";
+  }
+
+  function renderHistory(){
+
+    const dateInput = document.getElementById("doseHistoryDate");
+    const list = document.getElementById("doseHistoryList");
+    const summary = document.getElementById("doseHistorySummary");
+
+    const selectedDate = dateInput.value;
+
+    const logs = (window.doseLogs || []).filter(
+      log => log.date === selectedDate
+    );
+
+    if(!logs.length){
+
+      summary.innerHTML = `
+        <p><b>0</b> doses recorded</p>
+      `;
+
+      list.innerHTML = `
+        <div style="padding:20px;text-align:center;">
+          No dose history for this date.
+        </div>
+      `;
+
+      return;
+    }
+
+    const taken = logs.filter(x => x.status === "taken").length;
+    const missed = logs.filter(x => x.status === "missed").length;
+
+    summary.innerHTML = `
+      <p>
+        💚 Taken: <b>${taken}</b>
+        &nbsp;&nbsp;
+        ❌ Missed: <b>${missed}</b>
+      </p>
+    `;
+
+    list.innerHTML = logs.map(log => {
+
+      const name = getMedicineName(log.medicine_id);
+
+      const statusClass =
+        log.status === "taken"
+        ? "dose-taken"
+        : "dose-missed";
+
+      const statusText =
+        log.status === "taken"
+        ? "✓ Taken"
+        : "✕ Missed";
+
+      return `
+        <div class="dose-history-row">
+
+          <div>
+            <b>${name}</b><br>
+            <small>${log.date || ""}</small>
+          </div>
+
+          <div class="${statusClass}">
+            ${statusText}
+          </div>
+
+        </div>
+      `;
+
+    }).join("");
+  }
+
+  btn.addEventListener("click", async function(){
+
+    modal.style.display = "flex";
+
+    const dateInput = document.getElementById("doseHistoryDate");
+
+    const now = new Date();
+
+    const localDate =
+      now.getFullYear() + "-" +
+      String(now.getMonth()+1).padStart(2,"0") + "-" +
+      String(now.getDate()).padStart(2,"0");
+
+    dateInput.value = localDate;
+
+    if(typeof window.loadAll === "function"){
+      try{
+        await window.loadAll();
+      }catch(e){
+        console.log("History refresh skipped:", e);
+      }
+    }
+
+    renderHistory();
+  });
+
+  document.getElementById("doseHistoryClose")
+    .addEventListener("click", function(){
+      modal.style.display = "none";
+    });
+
+  document.getElementById("doseHistoryDate")
+    .addEventListener("change", renderHistory);
+
+  modal.addEventListener("click", function(e){
+    if(e.target === modal){
+      modal.style.display = "none";
+    }
+  });
+
+})();
+</script>
+<script>
+/* =========================================================
+   REPEAT MEDICINE SCHEDULE
+========================================================= */
+
+(function(){
+
+  const STORAGE_KEY = "smr_repeat_schedules";
+
+  function getSchedules(){
+    try{
+      return JSON.parse(
+        localStorage.getItem(STORAGE_KEY) || "{}"
+      );
+    }catch(e){
+      return {};
+    }
+  }
+
+  function saveSchedules(data){
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(data)
+    );
+  }
+
+  const style = document.createElement("style");
+
+  style.textContent = `
+    #repeatScheduleBtn{
+      position:fixed;
+      right:20px;
+      bottom:75px;
+      z-index:9997;
+      border:none;
+      border-radius:25px;
+      padding:12px 18px;
+      cursor:pointer;
+      font-weight:700;
+      box-shadow:0 4px 15px rgba(0,0,0,.2);
+    }
+
+    #repeatScheduleModal{
+      display:none;
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.55);
+      z-index:9999;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+
+    #repeatScheduleBox{
+      width:min(600px,95vw);
+      max-height:85vh;
+      overflow:auto;
+      background:white;
+      border-radius:18px;
+      padding:20px;
+    }
+
+    .schedule-field{
+      margin:12px 0;
+    }
+
+    .schedule-field label{
+      display:block;
+      font-weight:700;
+      margin-bottom:6px;
+    }
+
+    .schedule-field select,
+    .schedule-field input{
+      width:100%;
+      padding:10px;
+      border:1px solid #ccc;
+      border-radius:8px;
+      box-sizing:border-box;
+    }
+
+    .day-buttons{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+    }
+
+    .day-buttons label{
+      padding:8px 12px;
+      border:1px solid #ccc;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:500;
+    }
+
+    .day-buttons input{
+      width:auto;
+      margin-right:4px;
+    }
+
+    .schedule-item{
+      background:#f5f5f5;
+      padding:12px;
+      border-radius:10px;
+      margin-top:8px;
+    }
+
+    #repeatScheduleClose{
+      float:right;
+      border:none;
+      background:#eee;
+      border-radius:50%;
+      width:34px;
+      height:34px;
+      cursor:pointer;
+      font-size:18px;
+    }
+  `;
+
+  document.head.appendChild(style);
+
+
+  /* BUTTON */
+
+  const button = document.createElement("button");
+
+  button.id = "repeatScheduleBtn";
+  button.innerHTML = "🔁 Repeat Schedule";
+
+  document.body.appendChild(button);
+
+
+  /* MODAL */
+
+  const modal = document.createElement("div");
+
+  modal.id = "repeatScheduleModal";
+
+  modal.innerHTML = `
+
+    <div id="repeatScheduleBox">
+
+      <button id="repeatScheduleClose">
+        ✕
+      </button>
+
+      <h2>🔁 Repeat Medicine Schedule</h2>
+
+      <div class="schedule-field">
+
+        <label>Select Medicine</label>
+
+        <select id="scheduleMedicine">
+          <option value="">
+            Select medicine
+          </option>
+        </select>
+
+      </div>
+
+
+      <div class="schedule-field">
+
+        <label>Repeat Type</label>
+
+        <select id="scheduleType">
+
+          <option value="daily">
+            Every Day
+          </option>
+
+          <option value="weekly">
+            Selected Days
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <div
+        class="schedule-field"
+        id="scheduleDaysBox">
+
+        <label>Select Days</label>
+
+        <div class="day-buttons">
+
+          <label>
+            <input type="checkbox" value="1">
+            Mon
+          </label>
+
+          <label>
+            <input type="checkbox" value="2">
+            Tue
+          </label>
+
+          <label>
+            <input type="checkbox" value="3">
+            Wed
+          </label>
+
+          <label>
+            <input type="checkbox" value="4">
+            Thu
+          </label>
+
+          <label>
+            <input type="checkbox" value="5">
+            Fri
+          </label>
+
+          <label>
+            <input type="checkbox" value="6">
+            Sat
+          </label>
+
+          <label>
+            <input type="checkbox" value="0">
+            Sun
+          </label>
+
+        </div>
+
+      </div>
+
+
+      <div class="schedule-field">
+
+        <label>Start Date</label>
+
+        <input
+          type="date"
+          id="scheduleStartDate"
+        >
+
+      </div>
+
+
+      <div class="schedule-field">
+
+        <label>End Date</label>
+
+        <input
+          type="date"
+          id="scheduleEndDate"
+        >
+
+      </div>
+
+
+      <button
+        id="saveRepeatSchedule"
+        class="btn">
+
+        💾 Save Schedule
+
+      </button>
+
+
+      <hr>
+
+      <h3>Saved Schedules</h3>
+
+      <div id="savedSchedules">
+        No schedules saved.
+      </div>
+
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+
+  function fillMedicines(){
+
+    const select =
+      document.getElementById("scheduleMedicine");
+
+    if(!select) return;
+
+    select.innerHTML = `
+      <option value="">
+        Select medicine
+      </option>
+    `;
+
+    (medicines || []).forEach(m => {
+
+      const option =
+        document.createElement("option");
+
+      option.value = m.id;
+
+      option.textContent =
+        m.name || "Medicine";
+
+      select.appendChild(option);
+
+    });
+  }
+
+
+  function renderSavedSchedules(){
+
+    const box =
+      document.getElementById("savedSchedules");
+
+    const schedules = getSchedules();
+
+    const ids = Object.keys(schedules);
+
+    if(!ids.length){
+
+      box.innerHTML =
+        `<p class="muted">
+          No schedules saved.
+        </p>`;
+
+      return;
+    }
+
+
+    box.innerHTML = ids.map(id => {
+
+      const item = schedules[id];
+
+      const medicine =
+        (medicines || []).find(
+          m => String(m.id) === String(id)
+        );
+
+      const name =
+        medicine
+        ? medicine.name
+        : "Medicine";
+
+
+      const repeatText =
+        item.type === "daily"
+        ? "Every day"
+        : "Selected days";
+
+
+      const daysText =
+        item.type === "weekly"
+        ? item.days.join(", ")
+        : "";
+
+
+      return `
+
+        <div class="schedule-item">
+
+          <b>💊 ${name}</b>
+
+          <br>
+
+          Repeat:
+          ${repeatText}
+
+          ${daysText
+            ? `<br>Days: ${daysText}`
+            : ""}
+
+          <br>
+
+          Start:
+          ${item.start || "—"}
+
+          <br>
+
+          End:
+          ${item.end || "—"}
+
+          <br><br>
+
+          <button
+            class="btn danger small"
+            data-delete-schedule="${id}">
+
+            🗑️ Delete
+
+          </button>
+
+        </div>
+
+      `;
+
+    }).join("");
+
+
+    box
+      .querySelectorAll("[data-delete-schedule]")
+      .forEach(btn => {
+
+        btn.addEventListener(
+          "click",
+          function(){
+
+            const schedules = getSchedules();
+
+            delete schedules[this.dataset.deleteSchedule];
+
+            saveSchedules(schedules);
+
+            renderSavedSchedules();
+
+          }
+        );
+
+      });
+
+  }
+
+
+  /* OPEN */
+
+  button.addEventListener(
+    "click",
+    function(){
+
+      modal.style.display = "flex";
+
+      fillMedicines();
+
+      renderSavedSchedules();
+
+    }
+  );
+
+
+  /* CLOSE */
+
+  document
+    .getElementById("repeatScheduleClose")
+    .addEventListener(
+      "click",
+      function(){
+
+        modal.style.display = "none";
+
+      }
+    );
+
+
+  modal.addEventListener(
+    "click",
+    function(e){
+
+      if(e.target === modal){
+
+        modal.style.display = "none";
+
+      }
+
+    }
+  );
+
+
+  /* DAILY / WEEKLY */
+
+  document
+    .getElementById("scheduleType")
+    .addEventListener(
+      "change",
+      function(){
+
+        const box =
+          document.getElementById(
+            "scheduleDaysBox"
+          );
+
+        box.style.display =
+          this.value === "weekly"
+          ? "block"
+          : "none";
+
+      }
+    );
+
+
+  /* SAVE */
+
+  document
+    .getElementById("saveRepeatSchedule")
+    .addEventListener(
+      "click",
+      function(){
+
+        const medicineId =
+          document.getElementById(
+            "scheduleMedicine"
+          ).value;
+
+
+        const type =
+          document.getElementById(
+            "scheduleType"
+          ).value;
+
+
+        const start =
+          document.getElementById(
+            "scheduleStartDate"
+          ).value;
+
+
+        const end =
+          document.getElementById(
+            "scheduleEndDate"
+          ).value;
+
+
+        if(!medicineId){
+
+          alert("Please select a medicine.");
+
+          return;
+
+        }
+
+
+        let days = [];
+
+
+        if(type === "weekly"){
+
+          days = [
+            ...document.querySelectorAll(
+              "#scheduleDaysBox input:checked"
+            )
+          ].map(x => x.value);
+
+
+          if(!days.length){
+
+            alert("Please select at least one day.");
+
+            return;
+
+          }
+
+        }
+
+
+        const schedules = getSchedules();
+
+
+        schedules[medicineId] = {
+
+          type:type,
+
+          days:days,
+
+          start:start,
+
+          end:end
+
+        };
+
+
+        saveSchedules(schedules);
+
+        renderSavedSchedules();
+
+        alert(
+          "Repeat schedule saved successfully."
+        );
+
+      }
+    );
+
+
+  /* INITIAL */
+
+  document
+    .getElementById("scheduleDaysBox")
+    .style.display = "none";
+
+})();
+</script>
+<script>
+/* =========================================================
+   SMART MEDICINE REMINDER+ BALANCE PACK
+   Reminder + Snooze + Adherence + Stock Alert
+   Dark Mode + Mobile UI
+========================================================= */
+
+(function(){
+
+  /* =======================================================
+     MOBILE FRIENDLY UI
+  ======================================================= */
+
+  const style = document.createElement("style");
+
+  style.textContent = `
+
+    /* MOBILE */
+
+    @media(max-width:700px){
+
+      .container{
+        padding:12px !important;
+      }
+
+      .topbar-inner{
+        flex-direction:column !important;
+        gap:10px !important;
+      }
+
+      .tabs{
+        display:flex !important;
+        overflow-x:auto !important;
+        gap:6px !important;
+        padding-bottom:8px !important;
+      }
+
+      .tabs .btn{
+        white-space:nowrap !important;
+      }
+
+      .grid{
+        grid-template-columns:1fr !important;
+      }
+
+      .col6,
+      .col12{
+        grid-column:span 12 !important;
+      }
+
+      .form-grid{
+        grid-template-columns:1fr !important;
+      }
+
+      .actions{
+        flex-wrap:wrap !important;
+      }
+
+      #balanceButtons{
+        bottom:15px !important;
+        right:10px !important;
+      }
+
+    }
+
+
+    /* DARK MODE */
+
+    body.smr-dark{
+      background:#121212 !important;
+      color:#eeeeee !important;
+    }
+
+    body.smr-dark .card,
+    body.smr-dark .item,
+    body.smr-dark #smrReminderBox,
+    body.smr-dark #smrAdherenceBox{
+      background:#1e1e1e !important;
+      color:#eeeeee !important;
+    }
+
+    body.smr-dark input,
+    body.smr-dark select,
+    body.smr-dark textarea{
+      background:#252525 !important;
+      color:#ffffff !important;
+      border-color:#555 !important;
+    }
+
+    body.smr-dark .muted{
+      color:#bbbbbb !important;
+    }
+
+
+    /* FLOATING BUTTONS */
+
+    #balanceButtons{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      z-index:9990;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    #balanceButtons button{
+      border:none;
+      border-radius:22px;
+      padding:10px 15px;
+      cursor:pointer;
+      font-weight:700;
+      box-shadow:0 4px 14px rgba(0,0,0,.2);
+    }
+
+
+    /* REMINDER */
+
+    #smrReminderModal{
+      display:none;
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.6);
+      z-index:10000;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+
+    #smrReminderBox{
+      width:min(480px,95vw);
+      background:white;
+      border-radius:20px;
+      padding:22px;
+      box-shadow:0 10px 40px rgba(0,0,0,.3);
+    }
+
+    .smr-reminder-item{
+      padding:14px;
+      margin:10px 0;
+      border-radius:12px;
+      background:#f5f5f5;
+    }
+
+
+    /* ADHERENCE */
+
+    #smrAdherenceModal{
+      display:none;
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.6);
+      z-index:9999;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+
+    #smrAdherenceBox{
+      width:min(650px,95vw);
+      max-height:85vh;
+      overflow:auto;
+      background:white;
+      border-radius:20px;
+      padding:22px;
+    }
+
+    .smr-day{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin:10px 0;
+    }
+
+    .smr-bar{
+      flex:1;
+      height:14px;
+      background:#ddd;
+      border-radius:10px;
+      overflow:hidden;
+    }
+
+    .smr-bar-fill{
+      height:100%;
+      background:#35a853;
+      border-radius:10px;
+    }
+
+
+    /* LOW STOCK */
+
+    #smrStockAlert{
+      display:none;
+      position:fixed;
+      top:80px;
+      right:15px;
+      z-index:9998;
+      width:min(350px,90vw);
+      background:#fff4d6;
+      color:#6b4e00;
+      padding:15px;
+      border-radius:14px;
+      box-shadow:0 5px 20px rgba(0,0,0,.2);
+    }
+
+  `;
+
+  document.head.appendChild(style);
+
+
+  /* =======================================================
+     FLOATING BUTTONS
+  ======================================================= */
+
+  const buttons = document.createElement("div");
+
+  buttons.id = "balanceButtons";
+
+  buttons.innerHTML = `
+
+    <button
+      id="smrAdherenceBtn"
+      class="btn secondary">
+      📊 7-Day Adherence
+    </button>
+
+    <button
+      id="smrDarkBtn"
+      class="btn gray">
+      🌙 Dark Mode
+    </button>
+
+  `;
+
+  document.body.appendChild(buttons);
+
+
+  /* =======================================================
+     REMINDER MODAL
+  ======================================================= */
+
+  const reminderModal =
+    document.createElement("div");
+
+  reminderModal.id =
+    "smrReminderModal";
+
+  reminderModal.innerHTML = `
+
+    <div id="smrReminderBox">
+
+      <button
+        id="smrReminderClose"
+        style="
+          float:right;
+          border:none;
+          border-radius:50%;
+          width:32px;
+          height:32px;
+          cursor:pointer;
+        ">
+        ✕
+      </button>
+
+      <h2>🔔 Medicine Reminder</h2>
+
+      <p class="muted">
+        A scheduled medicine time has arrived.
+      </p>
+
+      <div id="smrReminderList"></div>
+
+    </div>
+
+  `;
+
+  document.body.appendChild(reminderModal);
+
+
+  /* =======================================================
+     ADHERENCE MODAL
+  ======================================================= */
+
+  const adherenceModal =
+    document.createElement("div");
+
+  adherenceModal.id =
+    "smrAdherenceModal";
+
+  adherenceModal.innerHTML = `
+
+    <div id="smrAdherenceBox">
+
+      <button
+        id="smrAdherenceClose"
+        style="
+          float:right;
+          border:none;
+          border-radius:50%;
+          width:32px;
+          height:32px;
+          cursor:pointer;
+        ">
+        ✕
+      </button>
+
+      <h2>📊 7-Day Adherence</h2>
+
+      <div id="smrAdherenceSummary"></div>
+
+      <hr>
+
+      <div id="smrAdherenceDays"></div>
+
+    </div>
+
+  `;
+
+  document.body.appendChild(adherenceModal);
+
+
+  /* =======================================================
+     LOW STOCK ALERT
+  ======================================================= */
+
+  const stockAlert =
+    document.createElement("div");
+
+  stockAlert.id =
+    "smrStockAlert";
+
+  document.body.appendChild(stockAlert);
+
+
+  /* =======================================================
+     HELPERS
+  ======================================================= */
+
+  function localDate(date){
+
+    return date.getFullYear() +
+      "-" +
+      String(date.getMonth()+1).padStart(2,"0") +
+      "-" +
+      String(date.getDate()).padStart(2,"0");
+
+  }
+
+
+  function getMedicine(id){
+
+    return (window.medicines || [])
+      .find(m =>
+        String(m.id) === String(id)
+      );
+
+  }
+
+
+  /* =======================================================
+     SMART REMINDER
+  ======================================================= */
+
+  function getDueMedicines(){
+
+    if(!window.medicines) return [];
+
+    const now = new Date();
+
+    const current =
+      String(now.getHours()).padStart(2,"0")
+      + ":" +
+      String(now.getMinutes()).padStart(2,"0");
+
+    const date = localDate(now);
+
+    return medicines.filter(m => {
+
+      if(!m.time) return false;
+
+      if(m.time !== current) return false;
+
+      if(
+        m.start_date &&
+        m.start_date > date
+      ) return false;
+
+      if(
+        m.end_date &&
+        m.end_date < date
+      ) return false;
+
+      const snoozeKey =
+        "smr_snooze_" +
+        date +
+        "_" +
+        m.id;
+
+      const snoozeUntil =
+        Number(
+          localStorage.getItem(snoozeKey) || 0
+        );
+
+      if(
+        snoozeUntil &&
+        Date.now() < snoozeUntil
+      ){
+        return false;
+      }
+
+      return true;
+
+    });
+
+  }
+
+
+  function showReminder(){
+
+    const due =
+      getDueMedicines();
+
+    if(!due.length) return;
+
+
+    const list =
+      document.getElementById(
+        "smrReminderList"
+      );
+
+    list.innerHTML =
+      due.map(m => `
+
+        <div class="smr-reminder-item">
+
+          <b>💊 ${escapeHTML(
+            m.name || "Medicine"
+          )}</b>
+
+          <br>
+
+          <span class="muted">
+
+            ${escapeHTML(
+              m.time || ""
+            )}
+
+            •
+
+            ${escapeHTML(
+              m.dose || ""
+            )}
+
+            ${escapeHTML(
+              m.unit || ""
+            )}
+
+          </span>
+
+          <br><br>
+
+          <button
+            class="btn success small"
+            data-reminder-taken="${m.id}">
+            ✓ Taken
+          </button>
+
+          <button
+            class="btn danger small"
+            data-reminder-missed="${m.id}">
+            ✕ Missed
+          </button>
+
+          <button
+            class="btn secondary small"
+            data-reminder-snooze="${m.id}">
+            ⏰ Snooze
+          </button>
+
+        </div>
+
+      `).join("");
+
+
+    list
+      .querySelectorAll(
+        "[data-reminder-taken]"
+      )
+      .forEach(btn => {
+
+        btn.onclick = async () => {
+
+          if(
+            typeof window.logDose ===
+            "function"
+          ){
+
+            await window.logDose(
+              btn.dataset.reminderTaken,
+              "taken"
+            );
+
+          }
+
+          showReminder();
+
+        };
+
+      });
+
+
+    list
+      .querySelectorAll(
+        "[data-reminder-missed]"
+      )
+      .forEach(btn => {
+
+        btn.onclick = async () => {
+
+          if(
+            typeof window.logDose ===
+            "function"
+          ){
+
+            await window.logDose(
+              btn.dataset.reminderMissed,
+              "missed"
+            );
+
+          }
+
+          showReminder();
+
+        };
+
+      });
+
+
+    list
+      .querySelectorAll(
+        "[data-reminder-snooze]"
+      )
+      .forEach(btn => {
+
+        btn.onclick = () => {
+
+          const minutes =
+            Number(
+              prompt(
+                "Snooze for how many minutes?",
+                "10"
+              )
+            );
+
+          if(
+            !minutes ||
+            minutes < 1
+          ) return;
+
+          const key =
+            "smr_snooze_" +
+            localDate(new Date()) +
+            "_" +
+            btn.dataset.reminderSnooze;
+
+          localStorage.setItem(
+            key,
+            String(
+              Date.now() +
+              minutes * 60000
+            )
+          );
+
+          showReminder();
+
+        };
+
+      });
+
+
+    reminderModal.style.display =
+      "flex";
+
+  }
+
+
+  /* Check every 30 seconds */
+
+  setInterval(
+    showReminder,
+    30000
+  );
+
+
+  /* First check */
+
+  setTimeout(
+    showReminder,
+    3000
+  );
+
+
+  document
+    .getElementById(
+      "smrReminderClose"
+    )
+    .onclick = () => {
+
+      reminderModal.style.display =
+        "none";
+
+    };
+
+
+  /* =======================================================
+     7-DAY ADHERENCE
+  ======================================================= */
+
+  function renderAdherence(){
+
+    const logs =
+      window.doseLogs || [];
+
+    const days = [];
+
+    for(
+      let i=6;
+      i>=0;
+      i--
+    ){
+
+      const d =
+        new Date();
+
+      d.setDate(
+        d.getDate() - i
+      );
+
+      const date =
+        localDate(d);
+
+      const dayLogs =
+        logs.filter(
+          x => x.log_date === date
+        );
+
+      const taken =
+        dayLogs.filter(
+          x => x.status === "taken"
+        ).length;
+
+      const missed =
+        dayLogs.filter(
+          x => x.status === "missed"
+        ).length;
+
+      const total =
+        taken + missed;
+
+      const rate =
+        total
+        ? Math.round(
+            taken / total * 100
+          )
+        : 0;
+
+      days.push({
+        date,
+        taken,
+        missed,
+        total,
+        rate
+      });
+
+    }
+
+
+    const totalTaken =
+      days.reduce(
+        (sum,d) =>
+          sum + d.taken,
+        0
+      );
+
+    const totalMissed =
+      days.reduce(
+        (sum,d) =>
+          sum + d.missed,
+        0
+      );
+
+    const total =
+      totalTaken +
+      totalMissed;
+
+    const overall =
+      total
+      ? Math.round(
+          totalTaken /
+          total * 100
+        )
+      : 0;
+
+
+    document
+      .getElementById(
+        "smrAdherenceSummary"
+      )
+      .innerHTML = `
+
+        <h3>
+          Overall: ${overall}%
+        </h3>
+
+        <p class="muted">
+
+          ✓ Taken:
+          <b>${totalTaken}</b>
+
+          &nbsp;&nbsp;
+
+          ✕ Missed:
+          <b>${totalMissed}</b>
+
+        </p>
+
+      `;
+
+
+    document
+      .getElementById(
+        "smrAdherenceDays"
+      )
+      .innerHTML =
+      days.map(d => `
+
+        <div class="smr-day">
+
+          <div style="width:90px">
+            <b>${d.date.slice(5)}</b>
+          </div>
+
+          <div class="smr-bar">
+
+            <div
+              class="smr-bar-fill"
+              style="width:${d.rate}%">
+            </div>
+
+          </div>
+
+          <div>
+            ${d.rate}%
+          </div>
+
+        </div>
+
+      `).join("");
+
+  }
+
+
+  document
+    .getElementById(
+      "smrAdherenceBtn"
+    )
+    .onclick = () => {
+
+      renderAdherence();
+
+      adherenceModal.style.display =
+        "flex";
+
+    };
+
+
+  document
+    .getElementById(
+      "smrAdherenceClose"
+    )
+    .onclick = () => {
+
+      adherenceModal.style.display =
+        "none";
+
+    };
+
+
+  /* =======================================================
+     LOW STOCK ALERT
+  ======================================================= */
+
+  function checkLowStock(){
+
+    if(!window.medicines) return;
+
+
+    const low =
+      medicines.filter(m =>
+
+        Number(m.stock || 0)
+        <=
+        Number(m.low_stock ?? 5)
+
+      );
+
+
+    if(!low.length) return;
+
+
+    const names =
+      low.map(
+        m =>
+          escapeHTML(
+            m.name || "Medicine"
+          )
+      );
+
+
+    stockAlert.innerHTML = `
+
+      <b>⚠️ Low Stock Alert</b>
+
+      <br><br>
+
+      ${names.join("<br>")}
+
+      <br><br>
+
+      <button
+        id="closeStockAlert"
+        class="btn small">
+
+        Close
+
+      </button>
+
+    `;
+
+
+    stockAlert.style.display =
+      "block";
+
+
+    document
+      .getElementById(
+        "closeStockAlert"
+      )
+      .onclick = () => {
+
+        stockAlert.style.display =
+          "none";
+
+      };
+
+  }
+
+
+  setTimeout(
+    checkLowStock,
+    4000
+  );
+
+
+  /* =======================================================
+     DARK MODE
+  ======================================================= */
+
+  const savedTheme =
+    localStorage.getItem(
+      "smr_theme"
+    );
+
+
+  if(savedTheme === "dark"){
+
+    document.body.classList.add(
+      "smr-dark"
+    );
+
+  }
+
+
+  document
+    .getElementById(
+      "smrDarkBtn"
+    )
+    .onclick = () => {
+
+      document.body.classList.toggle(
+        "smr-dark"
+      );
+
+
+      const dark =
+        document.body.classList.contains(
+          "smr-dark"
+        );
+
+
+      localStorage.setItem(
+        "smr_theme",
+        dark
+        ? "dark"
+        : "light"
+      );
+
+
+      document
+        .getElementById(
+          "smrDarkBtn"
+        )
+        .textContent =
+          dark
+          ? "☀️ Light Mode"
+          : "🌙 Dark Mode";
+
+    };
+
+
+  /* =======================================================
+     CLOSE MODALS BY BACKDROP
+  ======================================================= */
+
+  reminderModal.addEventListener(
+    "click",
+    e => {
+
+      if(e.target === reminderModal){
+
+        reminderModal.style.display =
+          "none";
+
+      }
+
+    }
+  );
+
+
+  adherenceModal.addEventListener(
+    "click",
+    e => {
+
+      if(e.target === adherenceModal){
+
+        adherenceModal.style.display =
+          "none";
+
+      }
+
+    }
+  );
+
+
+})();
+</script>
 </body>
 </html>
