@@ -4919,6 +4919,56 @@ $("reportMonth").value=
       logout: "ലോഗൗട്ട്",
       addMedicine: "+ മരുന്ന് ചേർക്കുക"
     }
+    te: {
+  dashboard: "డాష్‌బోర్డ్",
+  patients: "రోగులు",
+  medicines: "మందులు",
+  calendar: "క్యాలెండర్",
+  visits: "డాక్టర్ సందర్శనలు",
+  refills: "రిఫిల్‌లు",
+  emergency: "అత్యవసరం",
+  documents: "పత్రాలు",
+  finder: "మందుల శోధన",
+  reports: "నివేదికలు",
+  backup: "బ్యాకప్",
+  caregiver: "కేర్‌గివర్",
+  searchMedicine: "మందు పేరు వెతకండి",
+  allPatients: "అన్ని రోగులు"
+},
+
+kn: {
+  dashboard: "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+  patients: "ರೋಗಿಗಳು",
+  medicines: "ಔಷಧಿಗಳು",
+  calendar: "ಕ್ಯಾಲೆಂಡರ್",
+  visits: "ವೈದ್ಯರ ಭೇಟಿಗಳು",
+  refills: "ರಿಫಿಲ್‌ಗಳು",
+  emergency: "ತುರ್ತು",
+  documents: "ದಾಖಲೆಗಳು",
+  finder: "ಔಷಧಿ ಹುಡುಕಾಟ",
+  reports: "ವರದಿಗಳು",
+  backup: "ಬ್ಯಾಕಪ್",
+  caregiver: "ಕೇರ್‌ಗಿವರ್",
+  searchMedicine: "ಔಷಧಿಯ ಹೆಸರನ್ನು ಹುಡುಕಿ",
+  allPatients: "ಎಲ್ಲಾ ರೋಗಿಗಳು"
+},
+
+bn: {
+  dashboard: "ড্যাশবোর্ড",
+  patients: "রোগীরা",
+  medicines: "ওষুধ",
+  calendar: "ক্যালেন্ডার",
+  visits: "ডাক্তারের ভিজিট",
+  refills: "রিফিল",
+  emergency: "জরুরি",
+  documents: "নথি",
+  finder: "ওষুধ খুঁজুন",
+  reports: "রিপোর্ট",
+  backup: "ব্যাকআপ",
+  caregiver: "কেয়ারগিভার",
+  searchMedicine: "ওষুধের নাম খুঁজুন",
+  allPatients: "সব রোগী"
+},
   };
 
 
@@ -4945,13 +4995,20 @@ $("reportMonth").value=
     translateMedicineSearch();
 
     toast(
-      lang === "ta"
-        ? "மொழி மாற்றப்பட்டது"
-        : lang === "hi"
-        ? "भाषा बदल दी गई"
-        : lang === "ml"
-        ? "ഭാഷ മാറ്റി"
-        : "Language changed"
+      toast(
+  lang === "ta"
+    ? "மொழி மாற்றப்பட்டது"
+    : lang === "hi"
+    ? "भाषा बदल दी गई"
+    : lang === "ml"
+    ? "ഭാഷ മാറ്റി"
+    : lang === "te"
+    ? "భాష మార్చబడింది"
+    : lang === "kn"
+    ? "ಭಾಷೆ ಬದಲಾಯಿಸಲಾಗಿದೆ"
+    : lang === "bn"
+    ? "ভাষা পরিবর্তন করা হয়েছে"
+    : "Language changed"
     );
   }
 
@@ -4963,11 +5020,14 @@ $("reportMonth").value=
         "button[onclick*='toggleLanguage']"
       );
 
-    const names = {
-      en: "🌐 English",
-      ta: "🌐 தமிழ்",
-      hi: "🌐 हिन्दी",
-      ml: "🌐 മലയാളം"
+  const names = {
+  en: "🌐 English",
+  ta: "🌐 தமிழ்",
+  hi: "🌐 हिन्दी",
+  ml: "🌐 മലയാളം",
+  te: "🌐 తెలుగు",
+  kn: "🌐 ಕನ್ನಡ",
+  bn: "🌐 বাংলা"
     };
 
     buttons.forEach(btn => {
@@ -5065,10 +5125,13 @@ $("reportMonth").value=
   function openLanguageMenu() {
 
     const choices = [
-      ["en", "🇬🇧 English"],
-      ["ta", "🇮🇳 தமிழ்"],
-      ["hi", "🇮🇳 हिन्दी"],
-      ["ml", "🇮🇳 മലയാളം"]
+       ["en", "🇬🇧 English"],
+  ["ta", "🇮🇳 தமிழ்"],
+  ["hi", "🇮🇳 हिन्दी"],
+  ["ml", "🇮🇳 മലയാളം"],
+  ["te", "🇮🇳 తెలుగు"],
+  ["kn", "🇮🇳 ಕನ್ನಡ"],
+  ["bn", "🇮🇳 বাংলা"]
     ];
 
     openModal(
